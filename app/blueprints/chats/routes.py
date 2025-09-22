@@ -432,132 +432,77 @@ def search_messages():
 @bp.route('/api/send_image', methods=['POST'])
 @login_required
 def send_image():
-    """
-    จัดการการอัปโหลดและส่งข้อความรูปภาพไปยัง LINE
-    พร้อมทั้งบันทึกประวัติลงฐานข้อมูลอย่างปลอดภัย
-    """
-    file_path = None
-    # สร้างโครงสร้างข้อมูลสำหรับตอบกลับไว้ล่วงหน้า
-    response_data = {
-        "line_sent_successfully": False,
-        "line_error": "An unknown error occurred.",
-        "db_saved_successfully": False,
-        "db_error": "An unknown error occurred."
-    }
+    if 'image' not in request.files:
+        return jsonify({"error": "No image part"}), 400
+    
+    file = request.files['image']
+    user_id = request.form.get('user_id')
+    oa_id = request.form.get('oa_id')
+
+    if not all([file, user_id, oa_id]) or file.filename == '':
+        return jsonify({"error": "Missing data or file"}), 400
+
+    account = LineAccount.query.get(oa_id)
+    if not account:
+        return jsonify({"status": "error", "message": "OA not found"}), 404
 
     try:
-        # 1. ตรวจสอบและรับข้อมูลจาก Request
-        if 'image' not in request.files:
-            return jsonify({"error": "No image part"}), 400
+        # 1. อัปโหลดไฟล์ไปที่ S3 และรับ URL ถาวรกลับมา
+        permanent_url = s3_client.upload_fileobj(file)
+        print(f"Uploaded to S3, URL: {permanent_url}")
+
+        # 2. ส่ง URL ไปที่ LINE API
+        line_bot_api = LineBotApi(account.channel_access_token)
+        message_to_send = ImageSendMessage(
+            original_content_url=permanent_url, 
+            preview_image_url=permanent_url
+        )
+        line_bot_api.push_message(user_id, message_to_send)
+
+        # 3. บันทึกประวัติลงฐานข้อมูล
+        new_message = LineMessage(
+            user_id=user_id,
+            line_account_id=oa_id,
+            message_type='image',
+            message_url=permanent_url, # <-- บันทึก URL ถาวร
+            is_outgoing=True,
+            timestamp=datetime.utcnow(),
+            admin_user_id=current_user.id
+        )
+        db.session.add(new_message)
+        db.session.commit()
+
+        # 4. ส่ง Event ไปยัง Client อื่นๆ
+        room_name = f"chat_{user_id}_{oa_id}"
+        message_data_for_socket = {
+            'id': new_message.id,
+            'sender_type': 'admin',
+            'message_type': 'image',
+            'content': new_message.message_url,
+            'full_datetime': (new_message.timestamp + timedelta(hours=7)).strftime('%d %b - %H:%M'),
+            'admin_email': current_user.email,
+            'oa_name': new_message.line_account.name,
+            'user_id': user_id,
+            'oa_id': int(oa_id)
+        }
+        socketio.emit('new_message', message_data_for_socket, to=room_name)
         
-        file = request.files['image']
-        user_id = request.form.get('user_id')
-        oa_id = request.form.get('oa_id')
-
-        if not all([file, user_id, oa_id]) or file.filename == '':
-            return jsonify({"error": "Missing data or file"}), 400
-
-        # 2. สร้างชื่อไฟล์ใหม่และบันทึกไฟล์ลง Server
-        _, f_ext = os.path.splitext(file.filename)
-        filename = str(uuid.uuid4()) + f_ext
-        
-        project_root = os.path.dirname(current_app.root_path) 
-        upload_folder = os.path.join(project_root, 'static', 'uploads')
-        
-        os.makedirs(upload_folder, exist_ok=True)
-        file_path = os.path.join(upload_folder, filename)
-        file.save(file_path)
-
-        # 3. สร้าง URL แบบ HTTPS สำหรับส่งให้ LINE
-        image_url = url_for('static', filename=f'uploads/{filename}', _external=True, _scheme='https')
-        print(f"Generated URL to send to LINE: {image_url}")
-        
-        # 4. ส่งข้อความรูปภาพไปที่ LINE API
-        try:
-            account = LineAccount.query.get(oa_id)
-            if account:
-                line_bot_api = LineBotApi(account.channel_access_token)
-                message_to_send = ImageSendMessage(
-                    original_content_url=image_url, 
-                    preview_image_url=image_url
-                )
-                line_bot_api.push_message(user_id, message_to_send)
-                # อัปเดตสถานะการส่ง LINE สำเร็จ
-                response_data["line_sent_successfully"] = True
-                response_data["line_error"] = None
-            else:
-                response_data["line_error"] = f"OA Account with ID {oa_id} not found."
-        except LineBotApiError as e:
-            response_data["line_error"] = e.error.message
-            print(f"LINE API Error sending image: {response_data['line_error']}")
-        except Exception as e:
-            response_data["line_error"] = str(e)
-            print(f"An unexpected error occurred sending image to LINE: {response_data['line_error']}")
-        
-        # ถ้าส่ง LINE ไม่สำเร็จ ให้หยุดทำงานและส่ง Error กลับไป
-        if not response_data["line_sent_successfully"]:
-            # พยายามลบไฟล์ที่อัปโหลดแล้วแต่ส่งไม่สำเร็จทิ้ง
-            if file_path and os.path.exists(file_path):
-                os.remove(file_path)
-            return jsonify(response_data), 500
-
-        # 5. บันทึกประวัติข้อความลงฐานข้อมูล (Database)
-        try:
-            new_message = LineMessage(
-                user_id=user_id,
-                line_account_id=oa_id,
-                message_type='image',
-                message_url=image_url,
-                is_outgoing=True,
-                timestamp=datetime.utcnow(),
-                admin_user_id=current_user.id
-            )
-            db.session.add(new_message)
-            db.session.commit()
-
-            response_data["db_saved_successfully"] = True
-            response_data["id"] = new_message.id 
-            response_data["sender_type"] = 'admin'
-            response_data["message_type"] = 'image'
-            response_data["content"] = new_message.message_url
-            response_data["full_datetime"] = (new_message.timestamp + timedelta(hours=7)).strftime('%d %b - %H:%M')
-            response_data["admin_email"] = current_user.email
-            response_data["oa_name"] = new_message.line_account.name
-
-            room_name = f"chat_{user_id}_{oa_id}"
-            message_data_for_socket = {
-                'id': new_message.id,
-                'sender_type': 'admin',
-                'message_type': 'image',
-                'content': new_message.message_url,
-                'full_datetime': (new_message.timestamp + timedelta(hours=7)).strftime('%d %b - %H:%M'),
-                'admin_email': current_user.email,
-                'oa_name': new_message.line_account.name,
-                'user_id': user_id,
-                'oa_id': int(oa_id)
-            }
-            socketio.emit('new_message', message_data_for_socket, to=room_name)
-
-        except Exception as e:
-            db.session.rollback() # สำคัญมาก: ย้อนสถานะ DB กลับไปก่อนหน้า
-            print("❌ FAILED to save message to DB. Rolling back.")
-            print("-------------------- DATABASE ERROR --------------------")
-            traceback.print_exc() # พิมพ์ Error ของ DB แบบละเอียด
-            print("------------------------------------------------------")
-            response_data["db_saved_successfully"] = False
-            response_data["db_error"] = str(e)
-        
-        return jsonify(response_data)
+        # 5. ส่ง Response ที่สมบูรณ์กลับไปให้ผู้ส่ง
+        return jsonify({
+            "db_saved_successfully": True,
+            "id": new_message.id,
+            "sender_type": 'admin',
+            "message_type": 'image',
+            "content": new_message.message_url,
+            "full_datetime": (new_message.timestamp + timedelta(hours=7)).strftime('%d %b - %H:%M'),
+            "admin_email": current_user.email,
+            "oa_name": new_message.line_account.name
+        })
 
     except Exception as e:
-        # บล็อกนี้จะทำงานหากเกิด Error ร้ายแรงอื่นๆ นอกเหนือจากที่ดักไว้
         db.session.rollback()
-        print(f"An overarching error occurred in send_image function: {e}")
         traceback.print_exc()
-        # พยายามลบไฟล์ทิ้งหากมี
-        if file_path and os.path.exists(file_path):
-            os.remove(file_path)
-        return jsonify({"error": "An internal server error occurred"}), 500
+        return jsonify({"db_saved_successfully": False, "db_error": str(e)}), 500
     
 # Sticker
 @bp.route("/api/send_sticker", methods=["POST"])
@@ -756,19 +701,12 @@ def download_chat(user_id):
 @bp.route("/<user_id>/more")
 @login_required
 def load_more(user_id):
-    """API สำหรับโหลดข้อความเก่าเพิ่มเติม"""
     oa_id = request.args.get("oa", type=int)
     offset = request.args.get("offset", type=int, default=0)
-    limit = 10 # โหลดเพิ่มทีละ 10
-
-    messages = LineMessage.query.filter_by(
-        user_id=user_id,
-        line_account_id=oa_id
-    ).order_by(LineMessage.timestamp.desc()).offset(offset).limit(limit).all()
+    limit = 10
+    messages = LineMessage.query.filter_by(user_id=user_id, line_account_id=oa_id).order_by(LineMessage.timestamp.desc()).offset(offset).limit(limit).all()
     messages.reverse()
-
     processed_messages = []
-    # ... (ส่วน for loop เหมือนเดิมทุกประการ) ...
     for m in messages:
         sender_type = 'admin' if m.is_outgoing else 'customer'
         content = ""
@@ -776,16 +714,18 @@ def load_more(user_id):
         elif m.message_type == "image": content = m.message_url
         elif m.message_type == "sticker": content = f"https://stickershop.line-scdn.net/stickershop/v1/sticker/{m.sticker_id}/ANDROID/sticker.png"
         elif m.message_type == "event": content = m.message_text
-        local_timestamp = m.timestamp + timedelta(hours=7) if m.is_outgoing else m.timestamp
+        local_timestamp = m.timestamp + timedelta(hours=7)
         message_data = {
+            'id': m.id, # <-- เพิ่ม ID
             'sender_type': sender_type, 'message_type': m.message_type, 'content': content,
-            'created_at': local_timestamp.strftime('%H:%M'), 'full_datetime': local_timestamp.strftime('%d %b - %H:%M')
+            'created_at': local_timestamp.strftime('%H:%M'),
+            'full_datetime': local_timestamp.strftime('%d %b - %H:%M'),
+            'is_close_event': "'Closed'" in content if m.message_type == "event" else False
         }
         if m.is_outgoing and m.admin:
             message_data['admin_email'] = m.admin.email
             message_data['oa_name'] = m.line_account.name
         processed_messages.append(message_data)
-        
     return jsonify({"messages": processed_messages})
 
 
@@ -858,77 +798,48 @@ def search_conversations():
 @bp.route('/api/conversation_status/<int:user_db_id>', methods=['POST'])
 @login_required
 def update_conversation_status(user_db_id):
-    """API สำหรับอัปเดตสถานะของแชท"""
     user = LineUser.query.get_or_404(user_db_id)
     data = request.get_json()
     new_status = data.get('status')
-
     valid_statuses = ['read', 'deposit', 'withdraw', 'issue', 'closed']
     if not new_status or new_status not in valid_statuses:
         return jsonify({"status": "error", "message": "Invalid status"}), 400
-
     user.status = new_status
-    db.session.commit()
-
-    # สร้าง Log event ในแชท
     log_text = f"📝 {current_user.email} changed status to '{new_status.capitalize()}'"
-    log_message = LineMessage(
-        user_id=user.user_id,
-        line_account_id=user.line_account_id,
-        message_type='event',
-        message_text=log_text,
-        is_outgoing=True, # ให้ถือว่าเป็นข้อความจากแอดมิน
-        timestamp=datetime.utcnow()
-    )
+    log_message = LineMessage(user_id=user.user_id, line_account_id=user.line_account_id,
+                              message_type='event', message_text=log_text,
+                              is_outgoing=True, timestamp=datetime.utcnow())
     db.session.add(log_message)
     db.session.commit()
-
-    latest_message = LineMessage.query.filter_by(
-        user_id=user.user_id,
-        line_account_id=user.line_account_id
-    ).order_by(LineMessage.timestamp.desc()).first()
-
+    latest_message = LineMessage.query.filter_by(user_id=user.user_id, line_account_id=user.line_account_id).order_by(LineMessage.timestamp.desc()).first()
     line_account = LineAccount.query.get(user.line_account_id)
     oa_name = line_account.name if line_account else "Unknown OA"
-
-    last_message_prefix = ""
+    last_message_prefix = "คุณ:" if latest_message and latest_message.is_outgoing else "ลูกค้า:"
     last_message_content = "[No messages yet]"
     if latest_message:
-        last_message_prefix = "คุณ:" if latest_message.is_outgoing else "ลูกค้า:"
-        if latest_message.message_type == 'text':
-            last_message_content = latest_message.message_text
-        elif latest_message.message_type == 'event':
-             last_message_content = latest_message.message_text
-        else:
-            last_message_content = f"[{latest_message.message_type.capitalize()}]"
-    
+        if latest_message.message_type == 'text': last_message_content = latest_message.message_text
+        elif latest_message.message_type == 'event': last_message_content = latest_message.message_text
+        else: last_message_content = f"[{latest_message.message_type.capitalize()}]"
     conversation_data = {
-        'id': log_message.id,
-        'user_id': user.user_id,
-        'line_account_id': user.line_account_id,
+        'user_id': user.user_id, 'line_account_id': user.line_account_id,
         'display_name': user.nickname or user.display_name or f"User: {user.user_id[:12]}...",
-        'oa_name': oa_name, # <--- [แก้ไข] ใช้ตัวแปร oa_name ที่เราเพิ่งหามา
-        'last_message_prefix': last_message_prefix,
-        'last_message_content': last_message_content,
-        'status': user.status,
-        'picture_url': user.picture_url,
-        'admin_email': current_user.email,
-        'oa_name': user.line_account.name if user.line_account else 'System'
+        'oa_name': oa_name, 'last_message_prefix': last_message_prefix,
+        'last_message_content': last_message_content, 'status': user.status,
+        'picture_url': user.picture_url
     }
     socketio.emit('update_conversation_list', conversation_data)
-
     room_name = f"chat_{user.user_id}_{user.line_account_id}"
     message_data_for_socket = {
-        'sender_type': 'admin',      # ถือเป็น event จากฝั่งแอดมิน
-        'message_type': 'event',     # ประเภทข้อความคือ 'event'
-        'content': log_message.message_text, # เอาข้อความจาก Log ที่เพิ่งสร้าง
+        'id': log_message.id, # <-- เพิ่ม ID
+        'sender_type': 'admin', 'message_type': 'event',
+        'content': log_message.message_text,
         'full_datetime': (log_message.timestamp + timedelta(hours=7)).strftime('%d %b - %H:%M'),
-        'is_close_event': "'Closed'" in log_message.message_text, # เช็คว่าเป็น event ปิดเคสหรือไม่
-        'user_id': user.user_id,     # ส่งไปด้วยเพื่อให้ JS เช็คได้ (เผื่อต้องใช้)
-        'oa_id': user.line_account_id
+        'is_close_event': "'Closed'" in log_message.message_text,
+        'user_id': user.user_id, 'oa_id': user.line_account_id,
+        'admin_email': current_user.email, # <-- เพิ่ม admin_email
+        'oa_name': user.line_account.name if user.line_account else 'System' # <-- เพิ่ม oa_name
     }
     socketio.emit('new_message', message_data_for_socket, to=room_name)
-
     return jsonify({"status": "success", "new_status": new_status})
 
 # app/blueprints/chats/routes.py

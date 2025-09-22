@@ -1,4 +1,5 @@
-import os, mimetypes
+import os
+import mimetypes
 from datetime import datetime
 from uuid import uuid4
 
@@ -20,9 +21,10 @@ def _client():
         )
     return _s3
 
-def _bucket(): return current_app.config["S3_BUCKET_NAME"]
+def _bucket(): 
+    return current_app.config["S3_BUCKET_NAME"]
 def _prefix():
-    p = current_app.config.get("S3_PREFIX", "")
+    p = current_app.config.get("S3_PREFIX", "uploads/") # กำหนด default เป็น uploads/
     return p if not p or p.endswith("/") else p + "/"
 
 def _ctype(filename, default="application/octet-stream"):
@@ -37,15 +39,17 @@ def _build_key(filename: str) -> str:
 
 def upload_fileobj(file_storage) -> str:
     key = _build_key(file_storage.filename)
+    content_type = _ctype(file_storage.filename)
     _client().upload_fileobj(
         Fileobj=file_storage.stream,
         Bucket=_bucket(),
         Key=key,
-        ExtraArgs={"ContentType": _ctype(file_storage.filename)},
+        ExtraArgs={
+            'ACL': 'public-read', # <-- [เพิ่ม] ทำให้ไฟล์เป็นสาธารณะ
+            'ContentType': content_type
+        }
     )
-    return key
 
-def presigned_get_url(key: str, expires_in=3600) -> str:
-    return _client().generate_presigned_url(
-        "get_object", Params={"Bucket": _bucket(), "Key": key}, ExpiresIn=expires_in
-    )
+    region = current_app.config["AWS_DEFAULT_REGION"]
+    return f"https://{_bucket()}.s3.{region}.amazonaws.com/{key}"
+
