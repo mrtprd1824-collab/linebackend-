@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Profile{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6 col-md-8">
+
+        <div class="text-center mb-4">
+            <h2 class="mb-1">Profile</h2>
+            <p class="text-muted">จัดการข้อมูลส่วนตัวของคุณ</p>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+
+                {# --- ส่วนแสดงข้อมูลผู้ใช้ --- #}
+                <div class="mb-4">
+                    <label class="form-label text-muted">Email</label>
+                    <p class="form-control-plaintext fs-5"><strong>{{ user.email }}</strong></p>
+                </div>
+                
+                <hr>
+
+                {# --- ส่วนฟอร์มเปลี่ยนรหัสผ่าน --- #}
+                <form method="POST">
+                    <h5 class="card-title mb-3">Change Password</h5>
+
+                    <div class="mb-3">
+                        <label for="new_password" class="form-label">New Password</p>
+                        <input type="password" name="new_password" id="new_password" class="form-control" required minlength="6">
+                        <div class="form-text">
+                            รหัสผ่านควรมีความยาวอย่างน้อย 6 ตัวอักษร
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="confirm_password" class="form-label">Confirm New Password</p>
+                        <input type="password" name="confirm_password" id="confirm_password" class="form-control" required>
+                    </div>
+
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-key-fill"></i> Update Password
+                        </button>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

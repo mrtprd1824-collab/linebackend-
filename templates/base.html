@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>{% block title %}Line Backend{% endblock %}</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+    {% block extra_css %}{% endblock %}
+
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding-top: 56px;
+        }
+        .navbar {
+            box-shadow: 0 2px 4px rgba(0,0,0,.04);
+        }
+    </style>
+</head>
+
+<body>
+    {# --- Navbar (เหมือนเดิม) --- #}
+    {% if current_user.is_authenticated %}
+    <nav class="navbar navbar-dark bg-dark fixed-top">
+        <!-- ... โค้ด Navbar ทั้งหมดของคุณ ... -->
+        <div class="container-fluid">
+            <button class="navbar-toggler me-2" type="button" data-bs-toggle="offcanvas"
+                data-bs-target="#offcanvasNavbar" aria-controls="offcanvasNavbar">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <a class="navbar-brand" href="/">Line Backend</a>
+            <div class="offcanvas offcanvas-start bg-dark text-white" tabindex="-1" id="offcanvasNavbar"
+                aria-labelledby="offcanvasNavbarLabel" style="width: 250px;">
+                <div class="offcanvas-header">
+                    <h5 class="offcanvas-title" id="offcanvasNavbarLabel">Line Backend</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"
+                        aria-label="Close"></button>
+                </div>
+                <div class="offcanvas-body">
+                    <ul class="navbar-nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link text-white" href="{{ url_for('auth.dashboard') }}">🏠 Dashboard</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-white" href="{{ url_for('chats.index') }}">💬 Chat Windows</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-white" href="{{ url_for('auth.profile') }}">👤 Profile</a>
+                        </li>
+                        <li>
+                            <hr class="dropdown-divider bg-light">
+                        </li>
+                        {% if current_user.is_admin %}
+                        <li class="nav-item">
+                            <a class="nav-link text-white" href="{{ url_for('quick_replies.index') }}">⚡ QuickReplies</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-white" href="{{ url_for('line_admin.line_admin_index') }}">🔗 Line OA</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-white" href="{{ url_for('oa_groups.index') }}">📂 OA Groups</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-white" href="{{ url_for('admin.manage_users') }}">👥 Manage Users</a>
+                        </li>
+                        <li>
+                            <hr class="dropdown-divider bg-light">
+                        </li>
+                        {% endif %}
+                        <li class="nav-item">
+                            <a class="nav-link text-danger" href="{{ url_for('auth.logout') }}">🚪 Logout</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+    {% endif %}
+
+    {# --- [ส่วนแก้ไขหลัก] Logic ที่ถูกต้อง --- #}
+
+    {# 1. แสดง Flash Messages #}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% if page_type != 'chat' %} <div class="container mt-2"> {% endif %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+            {% if page_type != 'chat' %} </div> {% endif %}
+        {% endif %}
+    {% endwith %}
+
+    {# 2. เปิด-ปิด Tag Wrapper #}
+    {% if page_type == 'chat' %}
+    <div class="chat-page-wrapper">
+    {% else %}
+    <main class="container mt-4">
+    {% endif %}
+
+    {# 3. Block Content #}
+    {% block content %}{% endblock %}
+
+    {# 4. ปิด Tag Wrapper #}
+    {% if page_type == 'chat' %}
+    </div>
+    {% else %}
+    </main>
+    {% endif %}
+    
+    {# --- Scripts (เหมือนเดิม) --- #}
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    
+    {% block scripts %}{% endblock %}
+
+</body>
+</html>

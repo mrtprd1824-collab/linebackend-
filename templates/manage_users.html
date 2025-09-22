@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Manage Users{% endblock %}
+
+{% block content %}
+<div class="row">
+    {# --- คอลัมน์ซ้าย: ตารางแสดงรายชื่อผู้ใช้ --- #}
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-light">
+                <h4 class="mb-0">
+                    <i class="bi bi-people-fill"></i> All Users
+                </h4>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for u in users %}
+                            <tr>
+                                <td>{{ u.id }}</td>
+                                <td>{{ u.email }}</td>
+                                <td>
+                                    <span class="badge {{ 'bg-primary' if u.is_admin else 'bg-secondary' }} fw-normal">
+                                        {{ 'Admin' if u.is_admin else 'User' }}
+                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    {# --- [ปรับปรุง] เปลี่ยนปุ่ม Delete --- #}
+                                    <form method="POST" action="{{ url_for('admin.delete_user', user_id=u.id) }}"
+                                        onsubmit="return confirm('Are you sure you want to delete this user?');"
+                                        class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" {% if
+                                            u.id==current_user.id %}disabled{% endif %}>
+                                            <i class="bi bi-trash-fill"></i> Delete
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# --- คอลัมน์ขวา: ฟอร์มสำหรับเพิ่มผู้ใช้ใหม่ --- #}
+    <div class="col-lg-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-light">
+                <h4 class="mb-0">
+                    <i class="bi bi-person-plus-fill"></i> Add New User
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('admin.add_user') }}">
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" name="email" id="email" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" name="password" id="password" class="form-control" required
+                            minlength="6">
+                    </div>
+                    <div class="mb-3">
+                        <label for="role" class="form-label">Role</label>
+                        <select name="role" id="role" class="form-select">
+                            <option value="user" selected>User</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle-fill"></i> Add User
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}

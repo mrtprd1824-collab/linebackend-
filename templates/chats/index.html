@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+{% set page_type = 'chat' %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/chat_style.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="chat-container">
+    <div class="user-list-panel">
+        <div class="user-list-header">
+            <h4>💬 Conversations</h4>
+        </div>
+        <div class="p-2 border-bottom">
+            <input type="text" id="user-search-input" class="form-control form-control-sm"
+                placeholder="Search by Nickname, Phone, User ID...">
+        </div>
+
+        <div class="p-2 border-bottom">
+            <select class="form-select form-select-sm" id="status-filter"
+                onchange="window.location.href = '/chats/?status_filter=' + this.value;">
+                <option value="all" {% if status_filter=='all' %}selected{% endif %}>ทั้งหมด</option>
+                <option value="deposit" {% if status_filter=='deposit' %}selected{% endif %}>ฝาก</option>
+                <option value="withdraw" {% if status_filter=='withdraw' %}selected{% endif %}>ถอน</option>
+                <option value="issue" {% if status_filter=='issue' %}selected{% endif %}>ติดปัญหา</option>
+            </select>
+        </div>
+        <ul class="list-group user-list-items" id="user-list">
+            {% for conv in conversations %} {% set msg = conv.message %}
+            {% set user = conv.user %}
+            <a href="#"
+                class="list-group-item list-group-item-action d-flex align-items-center status-{{ user.status }}"
+                data-userid="{{ msg.user_id }}" data-oaid="{{ msg.line_account_id }}">
+
+                <img src="{{ user.picture_url or url_for('static', filename='images/default-avatar.png') }}"
+                    alt="Profile" class="rounded-circle me-3" style="width: 50px; height: 50px;">
+
+                <div class="flex-grow-1">
+                    <div class="d-flex w-100 justify-content-between">
+                        <strong class="mb-1">{{ user.nickname or user.display_name or msg.user_id[:12] }}</strong>
+
+                        {% if conv.unread_count > 0 %}
+                        <span class="badge bg-danger rounded-pill">{{ conv.unread_count }}</span>
+                        {% endif %}
+                    </div>
+
+                    <small class="text-muted">@{{ msg.line_account.name }}</small>
+
+                    <p class="mb-0 text-muted text-truncate small">
+                        {% if msg.is_outgoing %} <span class="text-primary">คุณ:</span>
+                        {% else %} ลูกค้า: {% endif %}
+                        {% if msg.message_type == 'text' %} {{ msg.message_text }}
+                        {% else %} [{{ msg.message_type.capitalize() }}] {% endif %}
+                    </p>
+                </div>
+            </a>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div class="chat-window-panel" id="chat-window">
+        <div class="chat-placeholder">
+            <i class="bi bi-chat-dots-fill" style="font-size: 5rem;"></i>
+            <h3 class="mt-3">Select a conversation</h3>
+            <p class="text-muted">Choose a user from the list on the left to view their messages.</p>
+        </div>
+
+        <div id="chat-area" class="d-none">
+            <div class="chat-header" id="chat-header">
+            </div>
+            <div class="chat-messages" id="chat-messages">
+            </div>
+            <div class="chat-input">
+                <form id="reply-form" class="d-flex align-items-center w-100">
+                    <div id="inline-qr-results" class="list-group"
+                        style="display: none; position: absolute; bottom: 100%; left: 0; right: 0; z-index: 1000; margin-bottom: 5px; max-height: 250px; overflow-y: auto; border-radius: 0.375rem; box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);">
+                    </div>
+
+                    <input type="file" id="image-input" accept="image/png, image/jpeg" style="display: none;">
+
+                    <button type="button" class="btn btn-secondary me-2" id="attach-image-btn" title="Send Image"><i
+                            class="bi bi-paperclip"></i></button>
+                    <button type="button" class="btn btn-secondary me-2" id="sticker-btn" data-bs-toggle="modal"
+                        data-bs-target="#stickerPickerModal" title="Send Sticker"><i
+                            class="bi bi-emoji-smile"></i></button>
+                    <button type="button" class="btn btn-info" id="quick-reply-btn" data-bs-toggle="modal"
+                        data-bs-target="#quickReplyModal" title="Quick Reply"><i
+                            class="bi bi-lightning-fill"></i></button>
+
+                    <input type="text" id="reply-message" class="form-control ms-2" placeholder="Type your message...">
+                    <button type="submit" class="btn btn-primary ms-2">Send</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="quickReplyModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Quick Replies</h5>
+                    <input type="text" class="form-control ms-3" id="quick-reply-search" placeholder="Search...">
+                </div>
+                <div class="modal-body" id="quick-reply-list" style="max-height: 400px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="imagePreviewModal" tabindex="-1" aria-labelledby="imagePreviewModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="imagePreviewModalLabel">Send this image?</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <img id="preview-image" src="#" class="img-fluid" alt="Image preview">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="confirm-send-image-btn">Send Image</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="imageViewModal" tabindex="-1" aria-labelledby="imageViewModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-body text-center">
+                    <img id="full-image-view" src="#" class="img-fluid" alt="Full image view">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="stickerPickerModal" tabindex="-1" aria-labelledby="stickerPickerModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="stickerPickerModalLabel">Select Sticker</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="sticker-grid" class="sticker-grid"
+                        style="display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 10px;">
+                        <p>Loading stickers...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="noteEditorModal" tabindex="-1" aria-labelledby="noteEditorModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="noteEditorModalLabel">Edit Note</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <textarea id="full-note-textarea" class="form-control" rows="10"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" id="save-note-btn" class="btn btn-primary">Save Note</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% endblock %}
+
+    {% block scripts %}
+    {{ super() }}
+
+    <script id="server-data" type="application/json">
+        {{ {'current_user_email': current_user.email if current_user.is_authenticated else ''} | tojson }}
+    </script>
+
+    <script src="{{ url_for('static', filename='js/chat-ui.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/chat-api.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
+    {% endblock %}

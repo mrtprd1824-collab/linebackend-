@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card shadow-sm">
+    <div class="card-header bg-light d-flex flex-wrap justify-content-between align-items-center">
+        <h4 class="mb-0">
+            <i class="bi bi-lightning-charge-fill"></i> Quick Replies
+        </h4>
+        <div class="d-flex align-items-center gap-2 mt-2 mt-md-0">
+            
+            {# --- [เพิ่ม] Dropdown Filter --- #}
+            <form id="filter-form" method="get" action="{{ url_for('quick_replies.index') }}">
+                <select name="oa_filter" class="form-select form-select-sm" onchange="document.getElementById('filter-form').submit();">
+                    <option value="">-- Filter by OA --</option>
+                    {% for account in all_accounts %}
+                    <option value="{{ account.id }}" {% if account.id == selected_oa_id %}selected{% endif %}>
+                        {{ account.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </form>
+
+            {# --- [ปรับปรุง] ปุ่ม Add New --- #}
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addReplyModal">
+                <i class="bi bi-plus-circle-fill"></i> Add New
+            </button>
+        </div>
+    </div>
+
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Shortcut</th>
+                        <th>Message</th>
+                        <th>Belongs to OA</th>
+                        <th class="text-end" style="width: 15%;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for reply in replies %}
+                    <tr>
+                        <td><code>{{ reply.shortcut }}</code></td>
+                        <td style="max-width: 400px;" class="text-truncate">{{ reply.message }}</td>
+                        <td>
+                            <span class="badge {{ 'bg-success' if reply.line_account else 'bg-secondary' }}">
+                                {{ reply.line_account.name if reply.line_account else 'Global' }}
+                            </span>
+                        </td>
+                        <td class="text-end">
+                            <button type="button" class="btn btn-sm btn-outline-secondary edit-btn"
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#editReplyModal"
+                                    data-id="{{ reply.id }}"
+                                    data-shortcut="{{ reply.shortcut }}"
+                                    data-message="{{ reply.message }}"
+                                    data-oa-id="{{ reply.line_account_id or '' }}">
+                                <i class="bi bi-pencil-fill"></i> Edit
+                            </button>
+
+                            <form method="post" action="{{ url_for('quick_replies.delete', id=reply.id) }}"
+                                onsubmit="return confirm('Are you sure?');" class="d-inline">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <i class="bi bi-trash-fill"></i> Delete
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center text-muted p-4">
+                            No quick replies found.
+                            {% if selected_oa_id %}
+                                <a href="{{ url_for('quick_replies.index') }}" class="d-block mt-2">Clear Filter</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{# --- MODALS (เหมือนเดิม แต่ผมเพิ่ม ID ให้ฟอร์ม Add เพื่อความชัดเจน) --- #}
+
+<!-- Add Modal -->
+<div class="modal fade" id="addReplyModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add New Reply</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="add-form" method="POST" action="{{ url_for('quick_replies.add') }}">
+        {{ add_form.hidden_tag() }}
+        <div class="modal-body">
+          <div class="mb-3">
+            {{ add_form.shortcut.label(class="form-label") }}
+            {{ add_form.shortcut(class="form-control", required=True) }}
+          </div>
+          <div class="mb-3">
+            {{ add_form.message.label(class="form-label") }}
+            {{ add_form.message(class="form-control", rows=4, required=True) }}
+          </div>
+          <div class="mb-3">
+            {{ add_form.line_account.label(class="form-label") }}
+            {{ add_form.line_account(class="form-select") }}
+            <div class="form-text">เลือก -- Global -- หากต้องการให้ใช้ได้กับทุก OA</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          {{ add_form.submit(class="btn btn-primary") }}
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Edit -->
+
+<div class="modal fade" id="editReplyModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Edit Reply</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="edit-form" method="POST" action="">
+          {{ edit_form.hidden_tag() }}
+          <div class="modal-body">
+            <div class="mb-3">
+              {{ edit_form.shortcut.label(class="form-label") }}
+              {{ edit_form.shortcut(class="form-control", id="edit_shortcut", required=True) }}
+            </div>
+            <div class="mb-3">
+              {{ edit_form.message.label(class="form-label") }}
+              {{ edit_form.message(class="form-control", rows=4, id="edit_message", required=True) }}
+            </div>
+            <div class="mb-3">
+              {{ edit_form.line_account.label(class="form-label") }}
+              {{ edit_form.line_account(class="form-select", id="edit_line_account") }}
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            {{ edit_form.submit(class="btn btn-primary", value="Update") }}
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const editReplyModal = document.getElementById('editReplyModal');
+        const editForm = document.getElementById('edit-form');
+        const editShortcut = document.getElementById('edit_shortcut');
+        const editMessage = document.getElementById('edit_message');
+        const editLineAccount = document.getElementById('edit_line_account');
+
+        // เมื่อ Modal กำลังจะแสดง
+        editReplyModal.addEventListener('show.bs.modal', function (event) {
+            // ปุ่มที่ถูกคลิก
+            const button = event.relatedTarget;
+
+            // ดึงข้อมูลจาก data-* attributes ของปุ่ม
+            const id = button.dataset.id;
+            const shortcut = button.dataset.shortcut;
+            const message = button.dataset.message;
+            const oaId = button.dataset.oaId;
+
+            // สร้าง URL ที่ถูกต้องสำหรับ action ของฟอร์ม
+            const actionUrl = `/quick-replies/edit/${id}`;
+            
+            // อัปเดตค่าในฟอร์มของ Modal
+            editForm.action = actionUrl;
+            editShortcut.value = shortcut;
+            editMessage.value = message;
+            editLineAccount.value = oaId;
+        });
+    });
+</script>
+
+{% endblock %}

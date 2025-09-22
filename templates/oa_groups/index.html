@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card shadow-sm">
+    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <h4 class="mb-0">
+            <i class="bi bi-folder2-open"></i> OA Groups
+        </h4>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#oaGroupModal"
+            data-url="{{ url_for('oa_groups.add') }}">
+            <i class="bi bi-plus-circle-fill"></i> Add New Group
+        </button>
+    </div>
+
+    <div class="card-body">
+        <div class="table-responsive">
+            {# --- [ปรับปรุง] เพิ่ม class table-hover และ align-middle --- #}
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Group Name</th>
+                        <th class="text-end" style="width: 150px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for group in groups %}
+                    <tr>
+                        <td><strong>{{ group.name }}</strong></td>
+                        <td class="text-end">
+                            {# --- [ปรับปรุง] เปลี่ยนปุ่มเป็น Outline และเพิ่ม Icon --- #}
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal"
+                                data-bs-target="#oaGroupModal" data-url="{{ url_for('oa_groups.edit', id=group.id) }}">
+                                <i class="bi bi-pencil-fill"></i> Edit
+                            </button>
+
+                            <form method="post" action="{{ url_for('oa_groups.delete', id=group.id) }}"
+                                onsubmit="return confirm('Are you sure?');" class="d-inline">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <i class="bi bi-trash-fill"></i> Delete
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="2" class="text-center text-muted p-4">
+                            No groups found. Click 'Add New Group' to create one.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="oaGroupModal" tabindex="-1" aria-labelledby="oaGroupModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="oaGroupModalLabel">Loading...</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const oaGroupModal = document.getElementById('oaGroupModal');
+        const modalTitle = oaGroupModal.querySelector('.modal-title');
+        const modalBody = oaGroupModal.querySelector('.modal-body');
+
+        oaGroupModal.addEventListener('show.bs.modal', async (event) => {
+            const button = event.relatedTarget;
+            const url = button.getAttribute('data-url');
+
+            modalTitle.textContent = 'Loading...';
+            modalBody.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                const html = await response.text();
+
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = html;
+
+                const formTitle = tempDiv.querySelector('h2').textContent;
+                const formContent = tempDiv.querySelector('form');
+
+                modalTitle.textContent = formTitle;
+                modalBody.innerHTML = '';
+                modalBody.appendChild(formContent);
+
+                const form = modalBody.querySelector('form');
+                if (form) {
+                    form.addEventListener('submit', function (e) {
+                        e.preventDefault();
+
+                        const formData = new FormData(form);
+
+                        // --- ส่วนที่เพิ่มเข้ามา ---
+                        const csrfToken = form.querySelector('input[name="csrf_token"]').value;
+
+                        fetch(url, {
+                            method: 'POST',
+                            body: formData,
+                            headers: {
+                                'X-CSRFToken': csrfToken // ส่ง Token ใน Header
+                            }
+                        })
+                            .then(res => {
+                                if (res.ok) {
+                                    window.location.reload();
+                                } else {
+                                    // ถ้า server ตอบกลับ error เราสามารถดู error จริงๆ ได้ใน console
+                                    res.text().then(text => console.error('Server error response:', text));
+                                    alert('An error occurred. Please check the console for details.');
+                                }
+                            })
+                            .catch(error => console.error('Error:', error));
+                    });
+                }
+
+            } catch (error) {
+                modalTitle.textContent = 'Error';
+                modalBody.innerHTML = 'Failed to load content.';
+                console.error('There has been a problem with your fetch operation:', error);
+            }
+        });
+
+        oaGroupModal.addEventListener('hidden.bs.modal', () => {
+            modalTitle.textContent = 'Loading...';
+            modalBody.innerHTML = '';
+        });
+    });
+</script>
+
+{% endblock %}

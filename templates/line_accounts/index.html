@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class.container mt-4>
+  <div class="card shadow-sm">
+    <div class="card-header bg-light d-flex flex-wrap justify-content-between align-items-center">
+      <h4 class="mb-0">
+        <i class="bi bi-robot"></i> Manage LINE Accounts
+      </h4>
+      <div class="d-flex align-items-center gap-2 mt-2 mt-md-0">
+
+        {# --- [เพิ่ม] Dropdown Filter by Group --- #}
+        <form id="filter-form" method="get" action="{{ url_for('line_admin.line_admin_index') }}">
+          <select name="group_filter" class="form-select form-select-sm" onchange="this.form.submit();">
+            <option value="">-- Filter by Group --</option>
+            {% for group in groups %}
+            <option value="{{ group.id }}" {% if group.id==selected_group_id %}selected{% endif %}>
+              {{ group.name }}
+            </option>
+            {% endfor %}
+          </select>
+        </form>
+
+        {# --- [ปรับปรุง] ปุ่ม Add New --- #}
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addAccountModal">
+          <i class="bi bi-plus-circle-fill"></i> Add New OA
+        </button>
+      </div>
+    </div>
+
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Groups</th>
+              <th>Webhook URL</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for account in accounts %}
+            <tr>
+              <td><strong>{{ account.name }}</strong><br><small class="text-muted">ID: {{ account.id }}</small></td>
+              <td>
+                {% for group in account.groups %}
+                <span class="badge bg-secondary fw-normal">{{ group.name }}</span>
+                {% else %}
+                <span class="text-muted small">Not assigned</span>
+                {% endfor %}
+              </td>
+              <td>
+                <div class="input-group input-group-sm">
+                  <input type="text" class="form-control"
+                    value="{{ base_url.rstrip('/') }}{{ url_for('line_webhook.callback', webhook_path=account.webhook_path) }}"
+                    id="webhook-url-{{ account.id }}" readonly>
+                  <button class="btn btn-outline-secondary" type="button"
+                    onclick="copyToClipboard('webhook-url-{{ account.id }}', this)">
+                    <i class="bi bi-clipboard"></i>
+                  </button>
+                </div>
+              </td>
+              <td class="text-end">
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal"
+                  data-bs-target="#editAccountModal{{ account.id }}">
+                  <i class="bi bi-pencil-fill"></i> Edit
+                </button>
+                <form method="post" action="{{ url_for('line_admin.delete_line_account', id=account.id) }}"
+                  onsubmit="return confirm('Are you sure?');" class="d-inline">
+                  <button type="submit" class="btn btn-sm btn-outline-danger">
+                    <i class="bi bi-trash-fill"></i> Delete
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="4" class="text-center text-muted p-4">
+                No LINE Accounts found.
+                {% if selected_group_id %}
+                <a href="{{ url_for('line_admin.line_admin_index') }}" class="d-block mt-2">Clear Filter</a>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# --- MODALS --- #}
+
+<!-- Modal: Add -->
+<div class="modal fade" id="addAccountModal" tabindex="-1" aria-labelledby="addAccountModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="addAccountModalLabel">Add New LINE Account</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="POST" action="{{ url_for('line_admin.add_line_account') }}">
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label for="nameAdd" class="form-label">Account Name</label>
+              <input type="text" class="form-control" id="nameAdd" name="name" required>
+            </div>
+            <div class="col-md-6">
+              <label for="channel_idAdd" class="form-label">Channel ID</label>
+              <input type="text" class="form-control" id="channel_idAdd" name="channel_id" required>
+            </div>
+            <div class="col-md-6">
+              <label for="channel_secretAdd" class="form-label">Channel Secret</label>
+              <input type="text" class="form-control" id="channel_secretAdd" name="channel_secret" required>
+            </div>
+            <div class="col-12">
+              <label for="channel_access_tokenAdd" class="form-label">Channel Access Token</label>
+              <textarea class="form-control" id="channel_access_tokenAdd" name="channel_access_token" rows="3"
+                required></textarea>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Groups</label>
+              <div class="d-flex flex-wrap gap-2">
+                {% for group in groups %}
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="groups" value="{{ group.id }}"
+                    id="groupAdd{{ group.id }}">
+                  <label class="form-check-label" for="groupAdd{{ group.id }}">{{ group.name }}</label>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modals: Edit (Loop) -->
+{% for account in accounts %}
+<div class="modal fade" id="editAccountModal{{ account.id }}" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Edit LINE Account: {{ account.name }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="POST" action="{{ url_for('line_admin.edit_line_account', id=account.id) }}">
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label for="nameEdit{{ account.id }}" class="form-label">Account Name</label>
+              <input type="text" class="form-control" id="nameEdit{{ account.id }}" name="name"
+                value="{{ account.name }}" required>
+            </div>
+            <div class="col-md-6">
+              <label for="channel_idEdit{{ account.id }}" class="form-label">Channel ID</label>
+              <input type="text" class="form-control" id="channel_idEdit{{ account.id }}" name="channel_id"
+                value="{{ account.channel_id }}" required>
+            </div>
+            <div class="col-md-6">
+              <label for="channel_secretEdit{{ account.id }}" class="form-label">Channel Secret</label>
+              <input type="text" class="form-control" id="channel_secretEdit{{ account.id }}" name="channel_secret"
+                value="{{ account.channel_secret }}" required>
+            </div>
+            <div class="col-12">
+              <label for="channel_access_tokenEdit{{ account.id }}" class="form-label">Channel Access Token</label>
+              <textarea class="form-control" id="channel_access_tokenEdit{{ account.id }}" name="channel_access_token"
+                rows="3" placeholder="Leave blank to keep current token"></textarea>
+              <small class="text-muted">ปล่อยว่างไว้ถ้าไม่ต้องการเปลี่ยน Token</small>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Groups</label>
+              <div class="d-flex flex-wrap gap-2">
+                {% for group in groups %}
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="groups" value="{{ group.id }}"
+                    id="groupEdit{{ account.id }}-{{ group.id }}" {% if group in account.groups %}checked{% endif %}>
+                  <label class="form-check-label" for="groupEdit{{ account.id }}-{{ group.id }}">{{ group.name
+                    }}</label>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Update</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<script>
+    function copyToClipboard(elementId, buttonElement) {
+        const el = document.getElementById(elementId);
+        el.select();
+        el.setSelectionRange(0, 99999);
+        navigator.clipboard.writeText(el.value);
+
+        // --- [ส่วนแก้ไข] ---
+        const originalIconHTML = buttonElement.innerHTML;
+        
+        // 1. สลับ Class จาก outline เป็น solid
+        buttonElement.classList.remove('btn-outline-secondary');
+        buttonElement.classList.add('btn-success');
+        buttonElement.innerHTML = '<i class="bi bi-check-lg"></i> Copied!';
+        
+        // 2. เปลี่ยนกลับหลังจาก 2 วินาที
+        setTimeout(() => {
+            buttonElement.innerHTML = originalIconHTML;
+            buttonElement.classList.remove('btn-success');
+            buttonElement.classList.add('btn-outline-secondary');
+        }, 2000);
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8 col-md-10">
+
+        <div class="text-center mb-4">
+            <h2 class="mb-1">Welcome, {{ current_user.email }}!</h2>
+            <p class="text-muted">คุณได้เข้าสู่ระบบ Line Backend แล้ว</p>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <h4 class="card-title">เลือกกลุ่มการทำงาน</h4>
+                <p class="card-subtitle mb-3 text-muted">กรุณาเลือกกลุ่ม Line/OA เพื่อเปิดการมองเห็น จากนั้นกดปุ่ม "ยืนยัน"</p>
+
+                <form method="post" action="{{ url_for('auth.select_groups') }}">
+                    <div class="mb-3">
+                        <a href="{{ url_for('auth.clear_group_filter') }}" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-eye"></i> เปิดการมองเห็นทั้งหมด
+                        </a>
+                    </div>
+                    
+                    {# --- [แก้ไข] จัด Checkbox ให้อยู่ในกรอบที่สวยงาม --- #}
+                    <div class="list-group list-group-flush border rounded-3 mb-4">
+                        {% for group in groups %}
+                        <label class="list-group-item list-group-item-action py-3">
+                            <input class="form-check-input me-2" type="checkbox" name="group_ids" value="{{ group.id }}" 
+                                   id="group-{{ group.id }}"
+                                   {% if group.id in session.get('active_group_ids', []) %}checked{% endif %}>
+                            {{ group.name }}
+                        </label>
+                        {% else %}
+                        <div class="list-group-item text-center text-muted p-3">
+                            ยังไม่มีกลุ่มให้เลือก
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-check-circle-fill"></i> ยืนยัน
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
