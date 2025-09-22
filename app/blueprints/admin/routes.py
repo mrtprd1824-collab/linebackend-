@@ -12,7 +12,7 @@ def admin_required(func):
     def decorated_view(*args, **kwargs):
         if current_user.is_authenticated:
             print(f"--- DEBUG: Checking role for user '{current_user.email}'. Actual role is: '{current_user.role}' ---")
-            
+
         if not current_user.is_authenticated or current_user.role != "admin":
             flash("You do not have permission to access this page.", "danger")
             return redirect(url_for("auth.login"))
@@ -74,3 +74,13 @@ def delete_user(user_id):
     
     flash(f"User {user_to_delete.email} has been deleted.", "success")
     return redirect(url_for('admin.manage_users'))
+
+@bp.route("/debug-db")
+def debug_db_connection():
+    try:
+        # ลองส่ง query ง่ายๆ ไปยังฐานข้อมูล
+        db.session.execute(db.text('SELECT 1'))
+        return "<h1>SUCCESS: Database connection is working correctly!</h1>"
+    except Exception as e:
+        # ถ้าเกิด Error ให้แสดง Error นั้นออกมา
+        return f"<h1>ERROR: Database connection failed.</h1><p>Error details: {e}</p>"
