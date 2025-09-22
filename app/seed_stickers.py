@@ -9,7 +9,16 @@ with app.app_context():
         for i in range(52002734, 52002758)
     ]
     for s in stickers:
-        if not Sticker.query.filter_by(packageId=s["packageId"], stickerId=s["stickerId"]).first():
-            db.session.add(Sticker(packageId=s["packageId"], stickerId=s["stickerId"]))
-    db.session.commit()
-    print("Seed complete")
+        if not Sticker.query.filter_by(
+            packageId=str(s["packageId"]),   # 👈 cast เป็น string
+            stickerId=str(s["stickerId"])    # 👈 cast เป็น string
+        ).first():
+            sticker = Sticker(
+                packageId=str(s["packageId"]),
+                stickerId=str(s["stickerId"]),
+                keywords=s.get("keywords", "")
+            )
+            db.session.add(sticker)
+
+db.session.commit()
+print("Seed complete ✅")
