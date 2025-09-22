@@ -299,3 +299,10 @@ body {
     background-color: transparent !important;
     border-radius: 15px; /* เพิ่ม radius ให้กรอบนิดหน่อย */
 }
+
+#reply-message {
+    resize: none; /* ปิดการใช้งานปุ่มย่อ-ขยาย textarea ด้วยมือ */
+    overflow-y: auto; /* แสดง scrollbar ถ้าข้อความยาวมากๆ */
+    max-height: 150px; /* จำกัดความสูงสูงสุดไม่ให้สูงเกินไป (ปรับค่าได้ตามชอบ) */
+    line-height: 1.5;
+}

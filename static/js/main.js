@@ -750,4 +750,25 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
+        replyMessageInput.addEventListener('keydown', function (event) {
+        // ตรวจสอบว่าปุ่มที่กดคือ 'Enter' และไม่ได้กด 'Shift' ค้างไว้
+        if (event.key === 'Enter' && !event.shiftKey) {
+            // 1. ป้องกันการขึ้นบรรทัดใหม่โดยอัตโนมัติ
+            event.preventDefault();
+            
+            // 2. หาปุ่ม Send แล้วสั่งให้คลิกเพื่อส่งข้อความ
+            const sendButton = document.getElementById('send-btn');
+            if (sendButton) {
+                sendButton.click();
+            }
+        }
+        // ถ้ากด Shift + Enter, เราจะไม่ทำอะไรเลย ปล่อยให้เบราว์เซอร์ทำงานตามปกติ (คือขึ้นบรรทัดใหม่)
+    });
+
+    replyMessageInput.addEventListener('input', function () {
+        this.style.height = 'auto';
+        this.style.height = (this.scrollHeight) + 'px';
+    });
+
+
 });
