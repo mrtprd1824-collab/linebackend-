@@ -10,6 +10,9 @@ def admin_required(func):
     from functools import wraps
     @wraps(func)
     def decorated_view(*args, **kwargs):
+        if current_user.is_authenticated:
+            print(f"--- DEBUG: Checking role for user '{current_user.email}'. Actual role is: '{current_user.role}' ---")
+            
         if not current_user.is_authenticated or current_user.role != "admin":
             flash("You do not have permission to access this page.", "danger")
             return redirect(url_for("auth.login"))
