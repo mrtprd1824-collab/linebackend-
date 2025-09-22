@@ -112,6 +112,7 @@ body {
 .message-content {
     padding: 10px 15px;
     word-wrap: break-word;
+    white-space: pre-wrap;
 }
 
 .customer-message .message-content {
