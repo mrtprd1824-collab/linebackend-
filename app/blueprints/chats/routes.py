@@ -17,6 +17,8 @@ from sqlalchemy import or_
 from app.models import User, LineUser, LineAccount, LineMessage, QuickReply, OAGroup, Sticker
 import traceback
 from app.extensions import socketio
+from app.blueprints.chats import bp
+from app.services import s3_client
 
 
 @bp.route("/")
@@ -928,6 +930,58 @@ def update_conversation_status(user_db_id):
     socketio.emit('new_message', message_data_for_socket, to=room_name)
 
     return jsonify({"status": "success", "new_status": new_status})
+
+# app/blueprints/chats/routes.py
+from flask import request, jsonify
+from app.blueprints.chats import bp
+from app.services import s3_client
+
+# เพิ่มสองบรรทัดนี้ ถ้ายังไม่มี
+from app.extensions import db
+from app.models import LineMessage  # ← โมเดลของพี่
+
+@bp.post("/upload")
+def upload_media():
+    if "file" not in request.files:
+        return jsonify({"ok": False, "error": "missing file"}), 400
+    f = request.files["file"]
+    if not f.filename:
+        return jsonify({"ok": False, "error": "empty filename"}), 400
+
+    # 1) อัปโหลดขึ้น S3
+    key = s3_client.upload_fileobj(f)
+    url = s3_client.presigned_get_url(key, 3600)
+
+    # 2) ถ้ามี message_id ส่งมา -> อัปเดตแถวเดิม
+    msg_id = request.form.get("message_id") or request.args.get("message_id")
+    updated = False
+    if msg_id:
+        msg = LineMessage.query.get(msg_id)
+        if not msg:
+            return jsonify({"ok": False, "error": f"message_id {msg_id} not found", "s3_key": key, "url": url}), 404
+        msg.media_key = key
+        # ถ้าอยากแท็กชนิดด้วย
+        if not msg.message_type or msg.message_type == "text":
+            msg.message_type = "image"  # หรือ "file" ตามชนิด
+        db.session.commit()
+        updated = True
+
+    return jsonify({
+        "ok": True,
+        "s3_key": key,
+        "url": url,
+        "message_id": int(msg_id) if msg_id else None,
+        "updated": updated
+    }), 201
+
+@bp.get("/media_url")
+def media_url():
+    key = request.args.get("key")
+    if not key:
+        return jsonify({"ok": False, "error": "missing key"}), 400
+
+    url = s3_client.presigned_get_url(key, 3600)  # ลิงก์ชั่วคราว 1 ชม.
+    return jsonify({"ok": True, "url": url}), 200
 
 # Debug
 @bp.route("/debug-paths")

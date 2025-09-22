@@ -48,13 +48,10 @@ class LineAccount(db.Model):
     channel_secret = db.Column(db.String(255), nullable=False)
     channel_access_token = db.Column(db.String(255), nullable=False)
     webhook_path = db.Column(db.String(50), unique=True, nullable=False) # unique=True สร้าง index ให้อยู่แล้ว
-
     groups = db.relationship('OAGroup', secondary=oa_group_association, back_populates='line_oas')
-    
     messages = db.relationship('LineMessage', back_populates='line_account', cascade="all, delete-orphan")
     users = db.relationship('LineUser', back_populates='line_account', cascade="all, delete-orphan")
     quick_replies = db.relationship('QuickReply', back_populates='line_account', cascade="all, delete-orphan")
-
     def __repr__(self):
         return f"<LineAccount {self.name}>"
 
@@ -88,22 +85,18 @@ class LineUser(db.Model):
 class LineMessage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.String(255), nullable=False) # ไม่ต้องใส่ index เดี่ยวๆ เพราะมี composite index ด้านล่างแล้ว
-
     line_account_id = db.Column(db.Integer, db.ForeignKey('line_account.id', ondelete='CASCADE'), nullable=False, index=True) # <-- [เพิ่ม] สำคัญมาก! Query ข้อความแทบทุกครั้งต้องผ่าน key นี้
     line_account = db.relationship("LineAccount", back_populates="messages")
-
     admin_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), index=True) # <-- [เพิ่ม] สำหรับค้นหาข้อความที่แอดมินส่ง
     admin = db.relationship('User')
-
     message_type = db.Column(db.String(50), nullable=False, default="text", index=True) # <-- [เพิ่ม] เผื่อมีการกรองข้อความตามประเภท
     message_text = db.Column(db.Text)
     message_url = db.Column(db.String(255))
+    media_key = db.Column(db.String(512), index=True, nullable=True)
     sticker_id = db.Column(db.String(50))
     package_id = db.Column(db.String(50))
     is_outgoing = db.Column(db.Boolean, default=False, index=True) # <-- [เพิ่ม] สำหรับกรองข้อความเข้า-ออก
     timestamp = db.Column(db.DateTime, default=lambda: datetime.now(BANGKOK_TZ), index=True) # <-- [เพิ่ม] สำคัญมาก! สำหรับเรียงลำดับข้อความ
-
-    # Composite Index นี้ดีมากครับ สำหรับการดึงแชทของ user คนเดียวขึ้นมาดู
     __table_args__ = (db.Index("ix_line_message_user_time", "user_id", "timestamp"),)
 
     def __repr__(self):

@@ -13,8 +13,10 @@ class Config:
     FLASK_ENV = os.environ.get('FLASK_ENV')
 
     # Database
-    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL") or \
-        'sqlite:///' + os.path.join(basedir, 'instance', 'app.db')
+    SQLALCHEMY_DATABASE_URI = (
+        os.environ.get("SQLALCHEMY_DATABASE_URI")
+        or os.environ.get("DATABASE_URL")
+    )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # --- ✅ UPLOAD_FOLDER ถูกย้ายเข้ามาอยู่ในนี้ และเป็นตัวพิมพ์ใหญ่ ---
@@ -22,4 +24,19 @@ class Config:
 
     # ... คุณสามารถเพิ่ม Config อื่นๆ ต่อท้ายในนี้ได้ ...
 
-    BASE_URL = os.environ.get("BASE_URL", "https://442a4372ca7e.ngrok-free.app/")
+    BASE_URL = os.environ.get("BASE_URL", "https://linebackend-app.onrender.com/")
+
+    SECRET_KEY = os.environ.get("SECRET_KEY")
+    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL")
+
+    AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID")
+    AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY")
+    AWS_DEFAULT_REGION = (
+        os.environ.get("AWS_DEFAULT_REGION")
+        or os.environ.get("S3_BUCKET_REGION")  # ตามที่พี่ตั้งใน Render
+        or "ap-southeast-1"
+    )
+    S3_BUCKET_NAME = os.environ.get("S3_BUCKET_NAME")
+    S3_PREFIX = os.environ.get("S3_PREFIX", "uploads/")
+    MAX_CONTENT_LENGTH = 25 * 1024 * 1024
+    
