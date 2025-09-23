@@ -20,6 +20,12 @@ from app.extensions import socketio
 from app.blueprints.chats import bp
 from app.services import s3_client
 
+def truncate_text(text, length=10):
+    """ตัดข้อความและต่อท้ายด้วย '...' ถ้ามันยาวเกินที่กำหนด"""
+    if text and len(text) > length:
+        return text[:length] + '...'
+    return text
+
 
 @bp.route("/")
 @login_required
@@ -217,7 +223,7 @@ def get_messages_for_user(user_id):
         if latest_message:
             last_message_prefix = "คุณ:" if latest_message.is_outgoing else "ลูกค้า:"
             if latest_message.message_type == 'text':
-                last_message_content = latest_message.message_text
+                last_message_content = truncate_text(latest_message.message_text)
             elif latest_message.message_type == 'event':
                 last_message_content = latest_message.message_text
             else:
@@ -365,7 +371,7 @@ def send_message():
                 'display_name': line_user.nickname or line_user.display_name or f"User: {user_id[:12]}...",
                 'oa_name': new_message.line_account.name,
                 'last_message_prefix': "คุณ:", # เพราะเป็นข้อความจากแอดมิน
-                'last_message_content': new_message.message_text,
+                'last_message_content': truncate_text(new_message.message_text),
                 'status': line_user.status,
                 'picture_url': line_user.picture_url
             }
@@ -790,7 +796,7 @@ def search_conversations():
             
             # กำหนดเนื้อหาข้อความล่าสุด
             if latest_message.message_type == 'text':
-                last_message_content = latest_message.message_text
+                last_message_content = truncate_text(latest_message.message_text)
             else:
                 last_message_content = f"[{latest_message.message_type.capitalize()}]"
 
@@ -831,9 +837,11 @@ def update_conversation_status(user_db_id):
     last_message_prefix = "คุณ:" if latest_message and latest_message.is_outgoing else "ลูกค้า:"
     last_message_content = "[No messages yet]"
     if latest_message:
-        if latest_message.message_type == 'text': last_message_content = latest_message.message_text
+        if latest_message.message_type == 'text': last_message_content = truncate_text(latest_message.message_text)
         elif latest_message.message_type == 'event': last_message_content = latest_message.message_text
         else: last_message_content = f"[{latest_message.message_type.capitalize()}]"
+
+        
     conversation_data = {
         'user_id': user.user_id, 'line_account_id': user.line_account_id,
         'display_name': user.nickname or user.display_name or f"User: {user.user_id[:12]}...",

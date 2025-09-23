@@ -61,7 +61,7 @@
                     <p class="mb-0 text-muted text-truncate small">
                         {% if msg.is_outgoing %} <span class="text-primary">คุณ:</span>
                         {% else %} ลูกค้า: {% endif %}
-                        {% if msg.message_type == 'text' %} {{ msg.message_text }}
+                        {% if msg.message_type == 'text' %} {{ msg.message_text | truncate(10) }}
                         {% else %} [{{ msg.message_type.capitalize() }}] {% endif %}
                     </p>
                 </div>
