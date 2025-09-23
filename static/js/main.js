@@ -310,6 +310,11 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
+        const notificationSound = new Audio('/static/sounds/newchats.mp3'); // แก้ชื่อไฟล์ให้ตรง
+        notificationSound.play().catch(error => {
+            console.log("Audio play was prevented by the browser:", error);
+        });
+
         // 3. เกราะป้องกัน ID ซ้ำ (เผื่อไว้สำหรับกรณีอื่นๆ)
         if (msgData.id && document.getElementById(`msg-${msgData.id}`)) {
             console.log(`Message ID ${msgData.id} already exists. Skipping.`);
