@@ -153,7 +153,13 @@ document.addEventListener('DOMContentLoaded', function () {
                             </div>
                         </div>
                     </div>
-                    <small class="text-muted d-block mt-2">${data.account.name}</small>
+                     ${data.account.manager_url ? `
+                    <a href="${data.account.manager_url}" target="_blank" rel="noopener noreferrer" class="text-muted d-block mt-2 text-decoration-none" title="Open in LINE Official Account Manager">
+                        @${data.account.name} <i class="bi bi-box-arrow-up-right small"></i>
+                    </a>
+                ` : `
+                    <small class="text-muted d-block mt-2">@${data.account.name}</small>
+                `}
                 </form>
             `;
 

@@ -272,7 +272,8 @@ def get_messages_for_user(user_id):
         },
         "account": {
             "id": account.id,
-            "name": account.name
+            "name": account.name,
+            "manager_url": account.manager_url
         },
         "messages": processed_messages,
         "total_messages": total_messages
