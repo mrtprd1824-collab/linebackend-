@@ -243,10 +243,7 @@ def get_messages_for_user(user_id):
             if "'Closed'" in content:
                 is_close_event = True
 
-        if m.is_outgoing:
-            local_timestamp = m.timestamp + timedelta(hours=7)
-        else:
-            local_timestamp = m.timestamp
+        local_timestamp = m.timestamp + timedelta(hours=7)
             
         message_data = {
             'id': m.id,
