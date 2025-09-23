@@ -45,7 +45,6 @@ def upload_fileobj(file_storage) -> str:
         Bucket=_bucket(),
         Key=key,
         ExtraArgs={
-            'ACL': 'public-read', # <-- [เพิ่ม] ทำให้ไฟล์เป็นสาธารณะ
             'ContentType': content_type
         }
     )
