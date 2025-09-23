@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from . import bp   # ใช้ bp ที่ import มาจาก __init__.py
 from flask import jsonify
 from app.models import  db 
-from sqlalchemy import func
+from sqlalchemy import func, case
 from linebot import LineBotApi
 from linebot.models import TextSendMessage , ImageSendMessage , StickerSendMessage
 from linebot.exceptions import LineBotApiError
@@ -58,9 +58,18 @@ def index():
         query = query.join(LineAccount, LineMessage.line_account_id == LineAccount.id)\
                      .filter(LineAccount.groups.any(OAGroup.id.in_(selected_group_ids)))
         
-    pagination = query.order_by(subquery.c.max_timestamp.desc()).paginate(
+    sort_order = case(
+        (LineUser.status == 'closed', 1),
+        else_=0
+    )
+        
+    pagination = query.order_by(
+        sort_order.asc(),  # 1. เรียงตามเงื่อนไขใหม่ก่อน (0 จะมาก่อน 1)
+        subquery.c.max_timestamp.desc() # 2. แล้วค่อยเรียงตามเวลาเหมือนเดิม
+    ).paginate(
         page=page, per_page=per_page, error_out=False
     )
+
 
     users_with_messages = pagination.items
 
