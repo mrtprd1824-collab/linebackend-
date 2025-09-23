@@ -74,7 +74,7 @@ def add_line_account():
         channel_id=channel_id,
         channel_secret=channel_secret,
         channel_access_token=channel_access_token,
-        webhook_path=random_path
+        webhook_path=random_path,
         manager_url=request.form.get("manager_url")
     )
 
