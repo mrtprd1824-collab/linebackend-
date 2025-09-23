@@ -306,3 +306,22 @@ body {
     max-height: 150px; /* จำกัดความสูงสูงสุดไม่ให้สูงเกินไป (ปรับค่าได้ตามชอบ) */
     line-height: 1.5;
 }
+
+/* --- Fix for Active List Group Item Text Color --- */
+
+/* บังคับให้ตัวอักษรหลักทั้งหมดใน item ที่ active เป็นสีขาว */
+.list-group-item.active,
+.list-group-item.active strong {
+    color: #fff !important; 
+}
+
+/* บังคับให้ตัวอักษรย่อยๆ (เช่น @OA_Name, ข้อความล่าสุด) ที่ปกติเป็นสีเทา (text-muted)
+   ให้เปลี่ยนเป็นสีขาวที่โปร่งแสงเล็กน้อยเพื่อให้อ่านง่ายขึ้น */
+.list-group-item.active .text-muted {
+    color: rgba(255, 255, 255, 0.85) !important;
+}
+
+/* ถ้ามีลิงค์ข้างใน ก็ให้เป็นสีขาวด้วย */
+.list-group-item.active a {
+    color: #fff !important;
+}
