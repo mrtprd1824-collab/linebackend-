@@ -325,22 +325,7 @@ document.addEventListener('DOMContentLoaded', function () {
         console.log('✅ Successfully connected to WebSocket server!');
     });
 
-    socket.on('update_conversation_list', function (convData) {
-        console.log('Received smart conversation list update:', convData);
-        handleConversationUpdate(convData);
-        const params = new URLSearchParams(window.location.search);
-        const page = parseInt(params.get('page')) || 1;
-
-        if (page > 1) {
-            // ถ้า user ไม่ได้อยู่หน้าแรก ให้แสดงป้ายแจ้งเตือน
-            if (newMessageAlert) {
-                newMessageAlert.style.display = 'block';
-            }
-        } else {
-            // ถ้า user อยู่หน้าแรก ก็ให้ reload sidebar ตามปกติ
-            reloadSidebar();
-        }
-    });
+    socket.on('update_conversation_list', reloadSidebar);
 
     socket.on('resort_sidebar', () => {
         const params = new URLSearchParams(window.location.search);
@@ -739,9 +724,15 @@ document.addEventListener('DOMContentLoaded', function () {
             currentOaId = userLink.dataset.oaid;
             if (currentUserId && currentOaId) {
                 loadChatForUser(currentUserId, currentOaId);
+                document.querySelectorAll('#user-list .list-group-item-action').forEach(link => {
+                    link.classList.remove('active');
+                });
+                // 2. เพิ่ม active class ให้กับรายการที่เพิ่งคลิก
+                userLink.classList.add('active');
             }
         }
     });
+
 
     // --- [เพิ่ม] Event Listener สำหรับ Keyboard Shortcut (F4) ---
     document.addEventListener('keydown', function (event) {
