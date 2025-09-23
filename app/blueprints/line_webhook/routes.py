@@ -59,7 +59,10 @@ def callback(webhook_path):
                 line_user.unread_count = 1
             else:
                 line_user.unread_count = (line_user.unread_count or 0) + 1
+                
             line_user.last_seen_at = datetime.utcnow()
+
+            db.session.commit()
 
             # --- 2. บันทึกข้อความที่เข้ามา (ถ้ามี) ---
             new_msg = None # 1. [เพิ่ม] กำหนดค่าเริ่มต้นให้ new_msg
