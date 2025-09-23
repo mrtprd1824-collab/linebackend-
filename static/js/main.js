@@ -10,9 +10,9 @@ document.addEventListener('DOMContentLoaded', function () {
     let isLoadingMore = false;
     let currentRoom = null;
     let currentFullNote = '';
-    checkAndHideAlert();
 
-    const newMessageAlert = document.getElementById('new-message-alert');
+
+
     const serverDataEl = document.getElementById('server-data');
     const SERVER_DATA = JSON.parse(serverDataEl.textContent);
     const currentUserEmail = SERVER_DATA.current_user_email;
@@ -42,6 +42,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const searchInput = document.getElementById('user-search-input');
     const noteEditorModal = new bootstrap.Modal(document.getElementById('noteEditorModal'));
     const fullNoteTextarea = document.getElementById('full-note-textarea');
+    const newMessageAlert = document.getElementById('new-message-alert');
 
 
     // 3. EVENT HANDLERS (ฟังก์ชันจัดการ Event)
@@ -715,7 +716,26 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    function checkAndHideAlert() {
+        const params = new URLSearchParams(window.location.search);
+        const page = parseInt(params.get('page')) || 1;
+        if (page === 1 && newMessageAlert) {
+            newMessageAlert.style.display = 'none';
+        }
+    }
+
     // 4. INITIALIZATION (การตั้งค่าเริ่มต้น)
+
+    //  เพิ่ม Event Listener ให้กับป้าย
+    checkAndHideAlert();
+    if (newMessageAlert) {
+        newMessageAlert.addEventListener('click', () => {
+            window.location.href = '/chats/'; // เมื่อคลิกให้ไปที่หน้าแรก
+        });
+    }
+
+    //  ฟังก์ชันสำหรับเช็คและซ่อนป้ายตอนโหลดหน้า
+
     userList.addEventListener('click', (e) => {
         e.preventDefault();
         const userLink = e.target.closest('a.list-group-item-action');
@@ -863,21 +883,8 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
 
-    //  เพิ่ม Event Listener ให้กับป้าย
-    if (newMessageAlert) {
-        newMessageAlert.addEventListener('click', () => {
-            window.location.href = '/chats/'; // เมื่อคลิกให้ไปที่หน้าแรก
-        });
-    }
 
-    //  ฟังก์ชันสำหรับเช็คและซ่อนป้ายตอนโหลดหน้า
-    function checkAndHideAlert() {
-        const params = new URLSearchParams(window.location.search);
-        const page = parseInt(params.get('page')) || 1;
-        if (page === 1 && newMessageAlert) {
-            newMessageAlert.style.display = 'none';
-        }
-    }
+
 
 
 });
