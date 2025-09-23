@@ -27,6 +27,8 @@ def index():
     all_groups = OAGroup.query.order_by(OAGroup.name).all()
     selected_group_ids = session.get("active_group_ids", [])
     status_filter = request.args.get('status_filter', 'all')
+    page = request.args.get('page', 1, type=int)
+    per_page = 20 # <-- กำหนดจำนวนรายการต่อหน้าตรงนี้
 
     # [แก้ไข] แก้ไข Subquery ให้ Group by ทั้ง user_id และ line_account_id
     subquery = db.session.query(
@@ -55,8 +57,12 @@ def index():
     if selected_group_ids:
         query = query.join(LineAccount, LineMessage.line_account_id == LineAccount.id)\
                      .filter(LineAccount.groups.any(OAGroup.id.in_(selected_group_ids)))
+        
+    pagination = query.order_by(subquery.c.max_timestamp.desc()).paginate(
+        page=page, per_page=per_page, error_out=False
+    )
 
-    users_with_messages = query.order_by(subquery.c.max_timestamp.desc()).all()
+    users_with_messages = pagination.items
 
     conversations = []
     for msg, user in users_with_messages:
@@ -86,6 +92,7 @@ def index():
     return render_template(
         "chats/index.html",
         conversations=conversations,
+        pagination=pagination,
         all_groups=all_groups,
         selected_group_ids=selected_group_ids,
         status_filter=status_filter
