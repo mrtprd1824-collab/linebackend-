@@ -290,9 +290,45 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 4. SOCKET.IO EVENT LISTENERS (ตัวดักฟังจาก Server)
 
+    async function reloadSidebar() {
+        console.log('🔄 Received resort signal. Reloading sidebar...');
+        try {
+            // 1. ยิง request ไปที่หน้าแชทหลัก เพื่อขอ HTML ล่าสุด
+            const response = await fetch('/chats/');
+            if (!response.ok) {
+                throw new Error('Failed to fetch sidebar content');
+            }
+            const htmlText = await response.text();
+
+            // 2. แปลงข้อความ HTML ให้กลายเป็น Document object ชั่วคราวใน memory
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlText, 'text/html');
+
+            // 3. ดึงเนื้อหาใหม่จาก Document ชั่วคราวนั้น
+            const newUserListContent = doc.getElementById('user-list').innerHTML;
+            const newPaginationContent = doc.getElementById('sidebar-pagination-container').innerHTML;
+
+            // 4. นำเนื้อหาใหม่ไป "สวมทับ" ของเก่าบนหน้าเว็บจริง
+            document.getElementById('user-list').innerHTML = newUserListContent;
+            document.getElementById('sidebar-pagination-container').innerHTML = newPaginationContent;
+
+            console.log('✅ Sidebar reloaded successfully.');
+        } catch (error) {
+            console.error('Failed to reload sidebar:', error);
+        }
+    }
+
+
     socket.on('connect', () => {
         console.log('✅ Successfully connected to WebSocket server!');
     });
+
+    socket.on('update_conversation_list', function (convData) {
+        console.log('Received smart conversation list update:', convData);
+        handleConversationUpdate(convData);
+    });
+
+    socket.on('resort_sidebar', reloadSidebar);
 
     socket.on('new_message', function (msgData) {
         console.groupCollapsed('--- Received New Message Event ---');
@@ -343,10 +379,7 @@ document.addEventListener('DOMContentLoaded', function () {
         console.groupEnd();
     });
 
-    socket.on('update_conversation_list', function (convData) {
-        console.log('Received smart conversation list update:', convData);
-        handleConversationUpdate(convData);
-    });
+
 
 
 
@@ -363,7 +396,7 @@ document.addEventListener('DOMContentLoaded', function () {
             sender_type: 'admin',
             message_type: 'text',
             admin_email: currentUserEmail, // ใช้ตัวแปรที่ถูกต้อง
-            oa_name: (document.querySelector('#chat-header a') || document.querySelector('#chat-header small')).textContent.replace('@','').trim(),
+            oa_name: (document.querySelector('#chat-header a') || document.querySelector('#chat-header small')).textContent.replace('@', '').trim(),
             full_datetime: new Date().toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).replace(',', ' -')
         };
 

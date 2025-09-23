@@ -854,6 +854,7 @@ def update_conversation_status(user_db_id):
         'oa_name': user.line_account.name if user.line_account else 'System' # <-- เพิ่ม oa_name
     }
     socketio.emit('new_message', message_data_for_socket, to=room_name)
+    socketio.emit('resort_sidebar', {})
     return jsonify({"status": "success", "new_status": new_status})
 
 # app/blueprints/chats/routes.py
