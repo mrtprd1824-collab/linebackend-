@@ -72,6 +72,7 @@ class LineUser(db.Model):
     
     # สถานะแชท
     status = db.Column(db.String(50), nullable=False, default='read', index=True) # อันนี้ทำไว้ดีแล้ว
+    unread_count = db.Column(db.Integer, nullable=False, default=0)
     last_read_timestamp = db.Column(db.DateTime)
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True) # <-- [เพิ่ม] สำหรับเรียงลำดับ user ใหม่
