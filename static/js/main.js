@@ -363,7 +363,7 @@ document.addEventListener('DOMContentLoaded', function () {
             sender_type: 'admin',
             message_type: 'text',
             admin_email: currentUserEmail, // ใช้ตัวแปรที่ถูกต้อง
-            oa_name: document.querySelector('#chat-header small').textContent,
+            oa_name: (document.querySelector('#chat-header a') || document.querySelector('#chat-header small')).textContent.replace('@','').trim(),
             full_datetime: new Date().toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).replace(',', ' -')
         };
 
