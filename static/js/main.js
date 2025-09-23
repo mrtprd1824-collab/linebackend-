@@ -10,7 +10,9 @@ document.addEventListener('DOMContentLoaded', function () {
     let isLoadingMore = false;
     let currentRoom = null;
     let currentFullNote = '';
+    checkAndHideAlert();
 
+    const newMessageAlert = document.getElementById('new-message-alert');
     const serverDataEl = document.getElementById('server-data');
     const SERVER_DATA = JSON.parse(serverDataEl.textContent);
     const currentUserEmail = SERVER_DATA.current_user_email;
@@ -326,9 +328,35 @@ document.addEventListener('DOMContentLoaded', function () {
     socket.on('update_conversation_list', function (convData) {
         console.log('Received smart conversation list update:', convData);
         handleConversationUpdate(convData);
+        const params = new URLSearchParams(window.location.search);
+        const page = parseInt(params.get('page')) || 1;
+
+        if (page > 1) {
+            // ถ้า user ไม่ได้อยู่หน้าแรก ให้แสดงป้ายแจ้งเตือน
+            if (newMessageAlert) {
+                newMessageAlert.style.display = 'block';
+            }
+        } else {
+            // ถ้า user อยู่หน้าแรก ก็ให้ reload sidebar ตามปกติ
+            reloadSidebar();
+        }
     });
 
-    socket.on('resort_sidebar', reloadSidebar);
+    socket.on('resort_sidebar', () => {
+        const params = new URLSearchParams(window.location.search);
+        const page = parseInt(params.get('page')) || 1;
+
+        if (page > 1) {
+            // ถ้าไม่ได้อยู่หน้าแรก ให้แสดงป้ายเตือนแทนการ reload
+            if (newMessageAlert) {
+                newMessageAlert.style.display = 'block';
+                newMessageAlert.textContent = 'List re-sorted. Click to view latest.'; // เปลี่ยนข้อความได้
+            }
+        } else {
+            // ถ้าอยู่หน้าแรก ก็ให้ reload ตามปกติ
+            reloadSidebar();
+        }
+    });
 
     socket.on('new_message', function (msgData) {
         console.groupCollapsed('--- Received New Message Event ---');
@@ -842,6 +870,23 @@ document.addEventListener('DOMContentLoaded', function () {
         this.style.height = 'auto';
         this.style.height = (this.scrollHeight) + 'px';
     });
+
+
+    //  เพิ่ม Event Listener ให้กับป้าย
+    if (newMessageAlert) {
+        newMessageAlert.addEventListener('click', () => {
+            window.location.href = '/chats/'; // เมื่อคลิกให้ไปที่หน้าแรก
+        });
+    }
+
+    //  ฟังก์ชันสำหรับเช็คและซ่อนป้ายตอนโหลดหน้า
+    function checkAndHideAlert() {
+        const params = new URLSearchParams(window.location.search);
+        const page = parseInt(params.get('page')) || 1;
+        if (page === 1 && newMessageAlert) {
+            newMessageAlert.style.display = 'none';
+        }
+    }
 
 
 });

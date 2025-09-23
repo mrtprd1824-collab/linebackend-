@@ -7,12 +7,22 @@
 
 {% block content %}
 <div class="chat-container">
+
     <div class="user-list-panel">
         <div class="user-list-header">
             <a href="{{ url_for('chats.index') }}" class="text-decoration-none text-dark">
                 <h4>💬 Conversations</h4>
             </a>
+            {% if pagination.page > 1 %}
+            <span class="badge bg-secondary fw-normal">Page {{ pagination.page }}</span>
+            {% endif %}
         </div>
+
+        <div id="new-message-alert" class="p-2 text-center"
+            style="display: none; background-color: #0d6efd; color: white; cursor: pointer;">
+            New messages arrived. Click to view.
+        </div>
+
         <div class="p-2 border-bottom">
             <input type="text" id="user-search-input" class="form-control form-control-sm"
                 placeholder="Search by Nickname, Phone, User ID...">
