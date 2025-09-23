@@ -89,6 +89,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     async function loadChatForUser(userId, oaId) {
+        markChatAsRead(userId, oaId);
         chatPlaceholder.classList.add('d-none');
         chatArea.classList.remove('d-none');
         messagesContainer.innerHTML = '<p class="text-center text-muted">Loading messages...</p>';
@@ -197,6 +198,34 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    async function markChatAsRead(userId, oaId) {
+        // 1. หา user link ใน sidebar เพื่อซ่อน badge ทันที (Optimistic UI)
+        const userLink = document.querySelector(`.list-group-item-action[data-userid="${userId}"][data-oaid="${oaId}"]`);
+        if (userLink) {
+            const badge = userLink.querySelector('.badge');
+            if (badge) {
+                badge.style.display = 'none'; // หรือ badge.remove();
+            }
+        }
+
+        // 2. ส่ง request ไปบอก Backend ให้เคลียร์ค่าใน DB
+        try {
+            await fetch('/chats/read', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: userId, oa_id: oaId })
+            });
+            console.log(`Sent "mark as read" for user: ${userId}`);
+        } catch (error) {
+            console.error('Failed to mark chat as read:', error);
+            // ถ้าพลาด อาจจะแสดง badge กลับมา (ถ้าต้องการ)
+            if (userLink && userLink.querySelector('.badge')) {
+                userLink.querySelector('.badge').style.display = 'inline-block';
+            }
+        }
+    }
+
+
     // --- [เพิ่ม] ฟังก์ชันสำหรับอัปเดต Sidebar โดยเฉพาะ ---
     function handleConversationUpdate(convData) {
         // 1. หา Dropdown ที่ใช้กรองสถานะ และดึงค่าปัจจุบัน
@@ -219,20 +248,20 @@ document.addEventListener('DOMContentLoaded', function () {
             const newLink = document.createElement('a');
             newLink.href = "#";
             // [แก้ไข] ใช้ convData.status เพื่อกำหนดสีพื้นหลังและ badge
-            const isUnread = convData.status === 'unread';
+            const hasUnread = convData.unread_count && convData.unread_count > 0;
             newLink.className = `list-group-item list-group-item-action d-flex align-items-center status-${convData.status}`;
             newLink.dataset.userid = convData.user_id;
             newLink.dataset.oaid = convData.line_account_id;
 
             const defaultAvatar = "/static/images/default-avatar.png"; // แก้ path ให้ถูกต้อง
-            const unreadBadge = isUnread ? '<span class="badge bg-danger rounded-pill">New</span>' : '';
+            const unreadBadge = hasUnread ? `<span class="badge bg-danger rounded-pill">${convData.unread_count}</span>` : '';
 
             newLink.innerHTML = `
                 <img src="${convData.picture_url || defaultAvatar}" alt="Profile" class="rounded-circle me-3" style="width: 50px; height: 50px;">
                 <div class="flex-grow-1">
                     <div class="d-flex w-100 justify-content-between">
                         <strong class="mb-1">${convData.display_name}</strong>
-                        ${unreadBadge}
+                        ${unreadBadge} <!-- Badge จะแสดงผลตรงนี้ -->
                     </div>
                     <small class="text-muted">@${convData.oa_name}</small>
                     <p class="mb-0 text-muted text-truncate small">
@@ -262,7 +291,7 @@ document.addEventListener('DOMContentLoaded', function () {
     socket.on('new_message', function (msgData) {
         console.groupCollapsed('--- Received New Message Event ---');
         console.log('Message Data Received:', msgData);
-        
+
         const isForCurrentChat = String(msgData.user_id) === String(currentUserId) && String(msgData.oa_id) === String(currentOaId);
         if (!isForCurrentChat) {
             console.log('Message is for another chat. Ignoring.');
@@ -280,7 +309,7 @@ document.addEventListener('DOMContentLoaded', function () {
             console.groupEnd();
             return;
         }
-        
+
         // 3. เกราะป้องกัน ID ซ้ำ (เผื่อไว้สำหรับกรณีอื่นๆ)
         if (msgData.id && document.getElementById(`msg-${msgData.id}`)) {
             console.log(`Message ID ${msgData.id} already exists. Skipping.`);
@@ -292,7 +321,7 @@ document.addEventListener('DOMContentLoaded', function () {
         // ถ้าผ่านทุกด่านมาได้ แสดงว่าเป็นข้อความใหม่จาก "คนอื่น" จริงๆ
         console.log('✅ Appending new message from others to UI.');
         const promise = appendMessage(messagesContainer, msgData);
-        
+
         const isScrolledUp = (messagesContainer.scrollHeight - messagesContainer.scrollTop - messagesContainer.clientHeight) > 300;
         if (!isScrolledUp) {
             Promise.resolve(promise).then(() => {
@@ -750,12 +779,12 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-        replyMessageInput.addEventListener('keydown', function (event) {
+    replyMessageInput.addEventListener('keydown', function (event) {
         // ตรวจสอบว่าปุ่มที่กดคือ 'Enter' และไม่ได้กด 'Shift' ค้างไว้
         if (event.key === 'Enter' && !event.shiftKey) {
             // 1. ป้องกันการขึ้นบรรทัดใหม่โดยอัตโนมัติ
             event.preventDefault();
-            
+
             // 2. หาปุ่ม Send แล้วสั่งให้คลิกเพื่อส่งข้อความ
             const sendButton = document.getElementById('send-btn');
             if (sendButton) {

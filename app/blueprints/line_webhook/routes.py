@@ -1,4 +1,4 @@
-from flask import request, current_app
+from flask import request, current_app , jsonify
 from flask_socketio import join_room, leave_room
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
@@ -7,6 +7,7 @@ from . import bp
 import json
 import os
 from datetime import datetime
+
 
 # [สำคัญ] เพิ่ม import ที่จำเป็น
 from app.extensions import socketio
@@ -53,7 +54,11 @@ def callback(webhook_path):
                 print(f"Could not get profile for {user_id}: {e}")
 
             # --- [แก้ไข] ย้ายการอัปเดตสถานะและเวลามาไว้ตรงนี้ ---
-            line_user.status = 'unread'
+            if line_user.status == 'closed': # สมมติว่าสถานะปิดเคสคือ 'closed'
+                line_user.status = 'unread' # ถ้าเคสปิดไปแล้ว ให้เปิดใหม่เป็น unread
+                line_user.unread_count = 1
+            else:
+                line_user.unread_count = (line_user.unread_count or 0) + 1
             line_user.last_seen_at = datetime.utcnow()
 
             # --- 2. บันทึกข้อความที่เข้ามา (ถ้ามี) ---
@@ -134,7 +139,8 @@ def callback(webhook_path):
                         'oa_name': line_account.name,
                         'last_message_prefix': 'ลูกค้า:',
                         'last_message_content': new_msg.message_text if new_msg.message_type == 'text' else f"[{new_msg.message_type.capitalize()}]",
-                        'status': 'unread',
+                        'status': line_user.status,
+                        'unread_count': line_user.unread_count,
                         'picture_url': line_user.picture_url
                     })
 
@@ -151,6 +157,34 @@ def callback(webhook_path):
         import traceback
         traceback.print_exc()
         return "Internal Server Error", 500
+    
+@bp.route("/chats/read", methods=["POST"])
+def mark_chat_as_read():
+    """Endpoint สำหรับเคลียร์ unread_count เมื่อแอดมินเปิดอ่านแชท"""
+    data = request.get_json()
+    if not data:
+        return jsonify({'success': False, 'error': 'Invalid request'}), 400
+
+    user_id = data.get('user_id')
+    line_account_id = data.get('oa_id') # เปลี่ยนจาก line_account_id เป็น oa_id ให้ตรงกับที่ JS จะส่งมา
+
+    if not user_id or not line_account_id:
+        return jsonify({'success': False, 'error': 'Missing user_id or oa_id'}), 400
+
+    # ค้นหา user ในฐานข้อมูล
+    user = LineUser.query.filter_by(user_id=str(user_id), line_account_id=int(line_account_id)).first()
+    
+    if user:
+        if user.unread_count > 0:
+            user.unread_count = 0
+            db.session.commit()
+            print(f"✅ Marked chat for user {user_id} as read.")
+            return jsonify({'success': True, 'message': 'Unread count cleared.'}), 200
+        else:
+            # ไม่ต้องทำอะไรถ้ามันเป็น 0 อยู่แล้ว
+            return jsonify({'success': True, 'message': 'No unread messages to clear.'}), 200
+
+    return jsonify({'success': False, 'error': 'User not found'}), 404
     
 @socketio.on("join")
 def on_join(data):
