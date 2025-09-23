@@ -325,3 +325,19 @@ body {
 .list-group-item.active a {
     color: #fff !important;
 }
+
+a.list-group-item-action.active {
+    z-index: 2; /* อันนี้มาจาก Bootstrap เดิม, คงไว้ก็ดีครับ */
+    color: #fff !important;
+    background-color: #0d6efd !important; /* บังคับให้เป็นสีน้ำเงินมาตรฐาน */
+    border-color: #0d6efd !important;
+}
+
+/* 
+* ทำให้มั่นใจว่า element ย่อยๆ ข้างใน เช่น strong, small, p
+* จะรับสีมาจาก parent ของมัน (ซึ่งก็คือ #fff จากกฎข้างบน)
+*/
+a.list-group-item-action.active *,
+a.list-group-item-action.active .text-muted {
+    color: inherit !important;
+}
