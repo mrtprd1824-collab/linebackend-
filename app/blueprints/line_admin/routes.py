@@ -75,6 +75,7 @@ def add_line_account():
         channel_secret=channel_secret,
         channel_access_token=channel_access_token,
         webhook_path=random_path
+        manager_url=request.form.get("manager_url")
     )
 
     # ✅ Groups
@@ -103,6 +104,8 @@ def edit_line_account(id):
     # ถ้าไม่ใส่อะไรในฟิลด์ Access Token → คงค่าเดิม
     if request.form["channel_access_token"].strip():
         account.channel_access_token = request.form["channel_access_token"]
+
+    account.manager_url = request.form.get("manager_url")
 
     # ✅ Groups
     selected_group_ids = request.form.getlist("groups")

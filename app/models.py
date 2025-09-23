@@ -52,6 +52,7 @@ class LineAccount(db.Model):
     messages = db.relationship('LineMessage', back_populates='line_account', cascade="all, delete-orphan")
     users = db.relationship('LineUser', back_populates='line_account', cascade="all, delete-orphan")
     quick_replies = db.relationship('QuickReply', back_populates='line_account', cascade="all, delete-orphan")
+    manager_url = db.Column(db.String(255), nullable=True)
     def __repr__(self):
         return f"<LineAccount {self.name}>"
 

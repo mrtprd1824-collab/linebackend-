@@ -122,6 +122,11 @@
                 required></textarea>
             </div>
             <div class="col-12">
+              <label for="manager_urlAdd" class="form-label">Manager URL (Optional)</label>
+              <input type="url" class="form-control" id="manager_urlAdd" name="manager_url"
+                placeholder="https://manager.line.biz/account/...">
+            </div>
+            <div class="col-12">
               <label class="form-label">Groups</label>
               <div class="d-flex flex-wrap gap-2">
                 {% for group in groups %}
@@ -178,6 +183,11 @@
               <small class="text-muted">ปล่อยว่างไว้ถ้าไม่ต้องการเปลี่ยน Token</small>
             </div>
             <div class="col-12">
+              <label for="manager_urlEdit{{ account.id }}" class="form-label">Manager URL (Optional)</label>
+              <input type="url" class="form-control" id="manager_urlEdit{{ account.id }}" name="manager_url"
+                value="{{ account.manager_url or '' }}" placeholder="https://manager.line.biz/account/...">
+            </div>
+            <div class="col-12">
               <label class="form-label">Groups</label>
               <div class="d-flex flex-wrap gap-2">
                 {% for group in groups %}
@@ -203,26 +213,26 @@
 {% endfor %}
 
 <script>
-    function copyToClipboard(elementId, buttonElement) {
-        const el = document.getElementById(elementId);
-        el.select();
-        el.setSelectionRange(0, 99999);
-        navigator.clipboard.writeText(el.value);
+  function copyToClipboard(elementId, buttonElement) {
+    const el = document.getElementById(elementId);
+    el.select();
+    el.setSelectionRange(0, 99999);
+    navigator.clipboard.writeText(el.value);
 
-        // --- [ส่วนแก้ไข] ---
-        const originalIconHTML = buttonElement.innerHTML;
-        
-        // 1. สลับ Class จาก outline เป็น solid
-        buttonElement.classList.remove('btn-outline-secondary');
-        buttonElement.classList.add('btn-success');
-        buttonElement.innerHTML = '<i class="bi bi-check-lg"></i> Copied!';
-        
-        // 2. เปลี่ยนกลับหลังจาก 2 วินาที
-        setTimeout(() => {
-            buttonElement.innerHTML = originalIconHTML;
-            buttonElement.classList.remove('btn-success');
-            buttonElement.classList.add('btn-outline-secondary');
-        }, 2000);
-    }
+    // --- [ส่วนแก้ไข] ---
+    const originalIconHTML = buttonElement.innerHTML;
+
+    // 1. สลับ Class จาก outline เป็น solid
+    buttonElement.classList.remove('btn-outline-secondary');
+    buttonElement.classList.add('btn-success');
+    buttonElement.innerHTML = '<i class="bi bi-check-lg"></i> Copied!';
+
+    // 2. เปลี่ยนกลับหลังจาก 2 วินาที
+    setTimeout(() => {
+      buttonElement.innerHTML = originalIconHTML;
+      buttonElement.classList.remove('btn-success');
+      buttonElement.classList.add('btn-outline-secondary');
+    }, 2000);
+  }
 </script>
 {% endblock %}
