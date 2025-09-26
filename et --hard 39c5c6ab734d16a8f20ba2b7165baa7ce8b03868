@@ -1,0 +1,209 @@
+[33mcommit 6497f9417a69382f842df0f34212a8fa9bb7e01f[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m
+Author: mrtprd1824-collab <mr.tprd1824@gmail.com>
+Date:   Fri Sep 26 19:03:40 2025 +0700
+
+    feat: Reset and initialize a new clean migration history
+
+[33mcommit 39c5c6ab734d16a8f20ba2b7165baa7ce8b03868[m
+Author: mrtprd1824-collab <mr.tprd1824@gmail.com>
+Date:   Fri Sep 26 10:18:42 2025 +0700
+
+    Update chat_style.css: adjust list-group-item active background
+
+[33mcommit c2ca0663bceb9e698655d93c0f55c6bc0d65b3ce[m
+Author: mrtprd1824-collab <mr.tprd1824@gmail.com>
+Date:   Tue Sep 23 20:05:10 2025 +0700
+
+    feat: Truncate sidebar message previews to 10 characters
+
+[33mcommit e2e685c89f7c087655507e20ac8fe22f35cc8960[m
+Author: mrtprd1824-collab <mr.tprd1824@gmail.com>
+Date:   Tue Sep 23 19:50:37 2025 +0700
+
+    fix: Ensure active sidebar item always has blue background and white text
+
+[33mcommit 21588089ec8f244eca55994224faf0de812431c8[m
+Author: mrtprd1824-collab <mr.tprd1824@gmail.com>
+Date:   Tue Sep 23 19:43:38 2025 +0700
+
+    fix: Ensure all text in active sidebar item is white
+
+[33mcommit a191a4943f20996816c438409f1807ddbeb61c4b[m
+Author: mrtprd1824-collab <mr.tprd1824@gmail.com>
+Date:   Tue Sep 23 19:38:39 2025 +0700
+
+    fix: Correct script execution order to prevent initialization crash
+
+[33mcommit 20395d9853a5ad1fdea6d697077570819995d3d1[m
+Author: mrtprd1824-collab <mr.tprd1824@gmail.com>
+Date:   Tue Sep 23 19:31:07 2025 +0700
+
+    fix: Prevent sidebar reload from crashing on last page
+
+[33mcommit 5bdf9682534784b583285d30d09ed66a9dcde998[m
+Author: mrtprd1824-collab <mr.tprd1824@gmail.com>
+Date:   Tue Sep 23 19:19:15 2025 +0700
+
+    feat: Add new message alert for users on paginated pages
+
+[33mcommit 0a6faf73c0330af08451a239c12c895351088056[m
+Author: mrtprd1824-collab <mr.tprd1824@gmail.com>
+Date:   Tue Sep 23 18:56:08 2025 +0700
+
+    feat: Implement real-time sidebar sorting on status change
+
+[33mcommit dd3c47d92a74701edc0d6258c7a221f5b7ffe21f[m
+Author: mrtprd1824-collab <mr.tprd1824@gmail.com>
+Date:   Tue Sep 23 18:43:04 2025 +0700
+
+    feat: Prioritize non-closed conversations in sidebar sort order
+
+[33mcommit ced314fc71f5642a72757891e5945ee26a2907c0[m
+Author: mrtprd1824-collab <mr.tprd1824@gmail.com>
+Date:   Tue Sep 23 16:50:07 2025 +0700
+
+    feat: Make conversation header a link to the first page
+
+[33mcommit 14cb465055b5261529f8a287dbaf6b52e90d4217[m
+Author: mrtprd1824-collab <mr.tprd1824@gmail.com>
+Date:   Tue Sep 23 16:39:54 2025 +0700
+
+    feat: Implement pagination for conversation list
+
+[33mcommit 90ec078e133c14111afc5e03ffcdbbcb9d7e2fb4[m
+Author: mrtprd1824-collab <mr.tprd1824@gmail.com>
+Date:   Tue Sep 23 15:07:13 2025 +0700
+
+    fix: Prevent crash when sending message if OA name is a link
+
+[33mcommit c260ce8414a673cae07e44893204b34a8c177d07[m
+Author: mrtprd1824-collab <mr.tprd1824@gmail.com>
+Date:   Tue Sep 23 14:58:32 2025 +0700
+
+    feat: Add Manager URL link to chat header
+
+[33mcommit 1220f02c496ccb6f68b3716fbff1ffbfe9c9f1e2[m
+Author: mrtprd1824-collab <mr.tprd1824@gmail.com>
+Date:   Tue Sep 23 14:43:25 2025 +0700
+
+    fix: Correct syntax error in add_line_account
+
+[33mcommit 67521c7512749aeaf0f5afb342102fca973ac8e7[m
+Author: mrtprd1824-collab <mr.tprd1824@gmail.com>
+Date:   Tue Sep 23 14:39:06 2025 +0700
+
+    feat: Allow adding/editing Manager URL for Line OAs
+
+[33mcommit aacc8e4581919527aa752888ff2c0d18ff8841a3[m
+Author: mrtprd1824-collab <mr.tprd1824@gmail.com>
+Date:   Tue Sep 23 14:08:15 2025 +0700
+
+    feat: Add sound notification for new messages
+
+[33mcommit 80f7bb6c803d8387029939fe051bd31da7ac29b3[m
+Author: mrtprd1824-collab <mr.tprd1824@gmail.com>
+Date:   Tue Sep 23 13:13:23 2025 +0700
+
+    feat: Add unread_count to LineUser model definition
+
+[33mcommit c6b0ef23543e4272a2b0445c990f796fb5dcbb44[m
+Author: mrtprd1824-collab <mr.tprd1824@gmail.com>
+Date:   Tue Sep 23 13:05:29 2025 +0700
+
+    fix: Ensure user state is committed before emitting socket event
+
+[33mcommit ec5e1bf6346fbc57bcf9a42495a3dd61b9a2930c[m
+Author: mrtprd1824-collab <mr.tprd1824@gmail.com>
+Date:   Tue Sep 23 12:45:31 2025 +0700
+
+    feat: Keep chat status and show unread count badge
+
+[33mcommit 9c30604b78ba26c9a54b9cdb26e0618545567aae[m
+Author: mrtprd1824-collab <mr.tprd1824@gmail.com>
+Date:   Tue Sep 23 09:31:58 2025 +0700
+
+    แกไข time stamp utc+7
+
+[33mcommit c7f99714e314149a30b2ee411f1bd413e92bebd0[m
+Author: mrtprd1824-collab <mr.tprd1824@gmail.com>
+Date:   Tue Sep 23 09:19:50 2025 +0700
+
+    Fix: Remove ACL from S3 upload to support new bucket policies
+
+[33mcommit 6c337130b0521c8fee692b35fac891b317d2134e[m
+Author: mrtprd1824-collab <mr.tprd1824@gmail.com>
+Date:   Mon Sep 22 21:16:42 2025 +0700
+
+    Feat: Integrate Amazon S3 for image uploads and fix display logic
+
+[33mcommit 07d373885bc8fe98a197f1f32117a20cd885925e[m
+Author: mrtprd1824-collab <mr.tprd1824@gmail.com>
+Date:   Mon Sep 22 20:38:29 2025 +0700
+
+    Fix: Add missing ID to send button for Enter key functionality
+
+[33mcommit b559ed97cb29ff77b3c491ef1386d6ff51732cfa[m
+Author: mrtprd1824-collab <mr.tprd1824@gmail.com>
+Date:   Mon Sep 22 20:31:28 2025 +0700
+
+    Feat: Implement multiline input with Shift+Enter in chat
+
+[33mcommit e443a0256e77d7e2863c834f81b1ab138ee640bc[m
+Author: mrtprd1824-collab <mr.tprd1824@gmail.com>
+Date:   Mon Sep 22 20:21:31 2025 +0700
+
+    Style: Fix multiline text display in chat bubbles
+
+[33mcommit e0dff25c4c62d9eb7127908af251b1307d815d5b[m
+Author: mrtprd1824-collab <mr.tprd1824@gmail.com>
+Date:   Mon Sep 22 19:37:42 2025 +0700
+
+    add sticker seed script
+
+[33mcommit 843b40389c338051c55bf44d2a0dc27c2b9cd11d[m
+Author: mrtprd1824-collab <mr.tprd1824@gmail.com>
+Date:   Mon Sep 22 19:33:26 2025 +0700
+
+    add sticker seed script
+
+[33mcommit eb12b6da44a1a3c9e488cbf3cdd9e9a0b87bd486[m
+Author: mrtprd1824-collab <mr.tprd1824@gmail.com>
+Date:   Mon Sep 22 19:28:10 2025 +0700
+
+    add sticker seed script
+
+[33mcommit 74bbb752e1c11e9ec120e981b1ec73f256009a9d[m
+Author: mrtprd1824-collab <mr.tprd1824@gmail.com>
+Date:   Mon Sep 22 16:52:59 2025 +0700
+
+    deploy: s3 upload + media_key + render setup
+
+[33mcommit c5d6ed6a5a639d19fd938f275179886c6c44a30b[m
+Author: mrtprd1824-collab <mr.tprd1824@gmail.com>
+Date:   Mon Sep 22 13:57:59 2025 +0700
+
+    feat: Add database debug route
+
+[33mcommit a64c05228674b5fa10b13cfe4e05ed2fb4f13709[m
+Author: mrtprd1824-collab <mr.tprd1824@gmail.com>
+Date:   Mon Sep 22 13:31:21 2025 +0700
+
+    feat: Add debug print to admin_required
+
+[33mcommit 3ef412376e0c686da7e03a1eeb0dd2622c2dcd3f[m
+Author: mrtprd1824-collab <mr.tprd1824@gmail.com>
+Date:   Mon Sep 22 13:06:20 2025 +0700
+
+    fix: Add all required production libraries
+
+[33mcommit 2d8383e28265f721371e4142647e2031c9fcbb6e[m
+Author: mrtprd1824-collab <mr.tprd1824@gmail.com>
+Date:   Mon Sep 22 13:01:10 2025 +0700
+
+    feat: Add gunicorn to requirements
+
+[33mcommit 0d0458946e552db4d6e6c77e35c1e95fbab47950[m
+Author: mrtprd1824-collab <mr.tprd1824@gmail.com>
+Date:   Mon Sep 22 12:48:57 2025 +0700
+
+    fix: Correct .gitignore and perform initial commit
