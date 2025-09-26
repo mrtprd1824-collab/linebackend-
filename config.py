@@ -1,42 +1,29 @@
-import os
+# config.py
 
-# สร้างตัวแปรเก็บที่อยู่หลักไว้ก่อน (ตัวพิมพ์เล็กเพราะเป็นตัวแปรช่วย ไม่ใช่ Config หลัก)
+import os
+from dotenv import load_dotenv
+
 basedir = os.path.abspath(os.path.dirname(__file__))
+load_dotenv(os.path.join(basedir, '.env'))
 
 class Config:
-    """
-    Set Flask configuration variables from .env file.
-    """
-    # General Config
-    SECRET_KEY = os.environ.get("SECRET_KEY", "a_very_secret_key")
+    SECRET_KEY = os.environ.get("SECRET_KEY") or "a-default-secret-key-for-local-dev"
     FLASK_APP = os.environ.get('FLASK_APP')
     FLASK_ENV = os.environ.get('FLASK_ENV')
+    BASE_URL = os.environ.get("BASE_URL", "https://linebackend-app.onrender.com/")
 
-    # Database
     SQLALCHEMY_DATABASE_URI = (
-        os.environ.get("SQLALCHEMY_DATABASE_URI")
-        or os.environ.get("DATABASE_URL")
+        os.environ.get("DATABASE_URL") or
+        os.environ.get("SQLALCHEMY_DATABASE_URI") or
+        "sqlite:///" + os.path.abspath(os.path.join(basedir, "instance", "app.db"))
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
-    # --- ✅ UPLOAD_FOLDER ถูกย้ายเข้ามาอยู่ในนี้ และเป็นตัวพิมพ์ใหญ่ ---
-    UPLOAD_FOLDER = os.path.join(basedir, 'static', 'uploads')
-
-    # ... คุณสามารถเพิ่ม Config อื่นๆ ต่อท้ายในนี้ได้ ...
-
-    BASE_URL = os.environ.get("BASE_URL", "https://linebackend-app.onrender.com/")
-
-    SECRET_KEY = os.environ.get("SECRET_KEY")
-    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL")
-
     AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID")
     AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY")
-    AWS_DEFAULT_REGION = (
-        os.environ.get("AWS_DEFAULT_REGION")
-        or os.environ.get("S3_BUCKET_REGION")  # ตามที่พี่ตั้งใน Render
-        or "ap-southeast-1"
-    )
+    AWS_DEFAULT_REGION = os.environ.get("AWS_DEFAULT_REGION") or "ap-southeast-1"
     S3_BUCKET_NAME = os.environ.get("S3_BUCKET_NAME")
     S3_PREFIX = os.environ.get("S3_PREFIX", "uploads/")
-    MAX_CONTENT_LENGTH = 25 * 1024 * 1024
     
+    MAX_CONTENT_LENGTH = 25 * 1024 * 1024
+    UPLOAD_FOLDER = os.path.join(basedir, 'app', 'static', 'uploads')

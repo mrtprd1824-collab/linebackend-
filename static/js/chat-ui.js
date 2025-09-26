@@ -52,6 +52,15 @@ function createMessageElement(msgData) {
 
     wrapper.appendChild(content);
 
+    if (msgData.sender_type === 'admin' && msgData.line_sent_successfully === false) {
+        const errorBadge = document.createElement('div');
+        errorBadge.className = 'message-error-badge';
+        errorBadge.textContent = '! ส่งไม่สำเร็จ';
+        errorBadge.title = msgData.line_error_message || 'ไม่สามารถส่งข้อความนี้ไปยัง LINE ได้';
+        wrapper.appendChild(errorBadge);
+    }
+
+
     // --- [แก้ไข] Logic การสร้าง Meta Data ใหม่ทั้งหมด ---
     const meta = document.createElement('div');
     meta.classList.add('message-meta');
@@ -85,6 +94,14 @@ function appendMessage(container, msgData, isPrepending = false) {
         container.appendChild(element);
         // [ลบ] เอาการ scroll ออกจากตรงนี้ เพราะมันเร็วเกินไป
         // container.scrollTop = container.scrollHeight; 
+    }
+    if (window.failedMessageQueue && window.failedMessageQueue[msgData.id]) {
+        console.log(`ข้อความ ID ${msgData.id} อยู่ในคิวล้มเหลว! กำลังแปะป้าย Error...`);
+        // ถ้าใช่ ให้เรียกฟังก์ชันแปะป้าย Error ทันที
+        markMessageAsFailed(msgData.id, window.failedMessageQueue[msgData.id]);
+
+        // ลบออกจากคิว เพื่อไม่ให้ทำงานซ้ำ
+        delete window.failedMessageQueue[msgData.id];
     }
 
     // [แก้ไข] คืนค่า promise ออกไป เพื่อให้คนเรียกใช้รอได้

@@ -3,8 +3,6 @@ import eventlet
 eventlet.monkey_patch()
 
 import os
-from dotenv import load_dotenv
-load_dotenv()  # โหลดค่าใน .env เข้า ENV
 
 from app import create_app
 from app.extensions import socketio

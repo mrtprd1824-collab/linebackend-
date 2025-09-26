@@ -1,9 +1,13 @@
 # app/__init__.py
 import os
 from flask import Flask, redirect, url_for
+from datetime import timedelta
 from flask_login import current_user
 from config import Config
 from .extensions import db, migrate, login_manager, socketio  # รวมบรรทัดเดียว
+from .models import LineAccount
+
+
 
 def create_app():
     app = Flask(
@@ -14,6 +18,17 @@ def create_app():
 
     # โหลดคอนฟิกครั้งเดียว
     app.config.from_object(Config)
+    db_uri = app.config.get('SQLALCHEMY_DATABASE_URI')
+    if db_uri and db_uri.startswith('sqlite:///'):
+        path_to_db_file = db_uri.replace('sqlite:///', '')
+        instance_folder = os.path.dirname(path_to_db_file)
+        try:
+            os.makedirs(instance_folder)
+            print(f"INFO: Automatically created instance folder at: {instance_folder}")
+        except OSError:
+            pass 
+    app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=3)
+    app.config['SESSION_REFRESH_EACH_REQUEST'] = True
 
     # init extensions
     db.init_app(app)
@@ -53,6 +68,23 @@ def create_app():
             "PREFIX": app.config.get("S3_PREFIX"),
             "KEY_ID": mask(os.environ.get("AWS_ACCESS_KEY_ID")),
     }
+
+    @app.context_processor
+    def inject_global_notifications():
+        """
+        ส่งข้อมูลแจ้งเตือนที่ต้องใช้ทุกหน้าไปยัง Templates
+        """
+        try:
+            # 1. ค้นหาจำนวน OA ทั้งหมดที่มีปัญหา (is_active = False)
+            inactive_oa_count = LineAccount.query.filter_by(is_active=False).count()
+        except Exception:
+            # ป้องกัน Error ในกรณีที่ DB ยังไม่พร้อมใช้งาน
+            inactive_oa_count = 0
+        
+        # 2. ส่งข้อมูลนี้ไปให้ Template ทุกหน้าสามารถใช้งานได้
+        return dict(
+            inactive_oa_count=inactive_oa_count
+        )
 
     @app.route("/")
     def index():

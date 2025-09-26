@@ -1,7 +1,10 @@
-from flask import Blueprint, render_template, redirect, url_for, request, flash
+from flask import Blueprint, render_template, redirect, url_for, request, flash , jsonify 
 from flask_login import login_required, current_user
 from app.models import User
 from app.extensions import db
+from datetime import timedelta
+from app.models import LineAccount
+from app.services.oa_checker import check_single_oa_status
 
 bp = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -84,3 +87,28 @@ def debug_db_connection():
     except Exception as e:
         # ถ้าเกิด Error ให้แสดง Error นั้นออกมา
         return f"<h1>ERROR: Database connection failed.</h1><p>Error details: {e}</p>"
+    
+
+@bp.route('/oa-health-check')
+@login_required # หรือ @admin_required ถ้ามี
+def oa_health_check_page():
+    all_accounts = LineAccount.query.order_by(
+        LineAccount.is_active.asc(),
+        LineAccount.name.asc()
+    ).all()
+    return render_template('admin/oa_health_check.html',
+                           accounts=all_accounts,
+                           timedelta=timedelta)
+
+@bp.route('/api/run-oa-check', methods=['POST'])
+@login_required # หรือ @admin_required ถ้ามี
+def run_oa_check_api():
+    all_accounts = LineAccount.query.all()
+    results = {}
+    for acc in all_accounts:
+        status = check_single_oa_status(acc)
+        results[acc.id] = 'OK' if status else acc.last_check_status_message
+    
+    db.session.commit() # Commit การเปลี่ยนแปลงทั้งหมดทีเดียวหลัง Loop เสร็จ
+    
+    return jsonify({"status": "completed", "results": results})

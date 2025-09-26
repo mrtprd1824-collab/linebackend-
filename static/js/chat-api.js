@@ -14,13 +14,33 @@ async function fetchMoreMessages(userId, oaId, offset) {
 
 // Function to send a text message
 async function sendTextMessage(userId, oaId, message) {
-    const response = await fetch('/chats/api/send_message', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: userId, oa_id: oaId, message: message })
-    });
-    if (!response.ok) throw new Error('Failed to send message');
-    return await response.json();
+    try {
+        const response = await fetch('/chats/api/send_message', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userId, oa_id: oaId, message: message })
+        });
+
+        // ตรวจสอบว่า Server ตอบกลับมาว่า OK หรือไม่
+        if (!response.ok) {
+            // ถ้าไม่ OK, พยายามอ่านข้อความ Error จาก Server
+            const errorText = await response.text();
+            // โยน Error พร้อมข้อความที่ได้มา เพื่อให้ catch ทำงาน
+            throw new Error(errorText || response.statusText);
+        }
+
+        // ถ้า OK, ก็คืนค่า JSON ปกติ
+        return await response.json();
+
+    } catch (error) {
+        // ส่วนนี้จะทำงานเมื่อ fetch ล้มเหลว (เช่น network error) หรือเมื่อเรา throw Error ข้างบน
+        console.error("API call failed:", error);
+        // คืนค่าเป็น object ที่มีสถานะล้มเหลวเสมอ
+        return {
+            db_saved_successfully: false, // ระบุว่าล้มเหลว
+            message: error.message || "การสื่อสารกับเซิร์ฟเวอร์ล้มเหลว"
+        };
+    }
 }
 
 // Function to send an image message

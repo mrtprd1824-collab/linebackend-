@@ -15,8 +15,9 @@
             background-color: #f8f9fa;
             padding-top: 56px;
         }
+
         .navbar {
-            box-shadow: 0 2px 4px rgba(0,0,0,.04);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, .04);
         }
     </style>
 </head>
@@ -32,6 +33,19 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <a class="navbar-brand" href="/">Line Backend</a>
+            {% if inactive_oa_count > 0 %}
+            <div class="ms-auto"> <!-- ms-auto = ดันไปทางขวาสุด -->
+                <a href="{{ url_for('admin.oa_health_check_page') }}" class="btn btn-danger position-relative"
+                    title="มี OA ที่เชื่อมต่อไม่ได้!">
+                    <i class="bi bi-wifi-off"></i> <!-- ไอคอนรูป wifi-off -->
+                    <span
+                        class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark">
+                        {{ inactive_oa_count }}
+                        <span class="visually-hidden">inactive accounts</span>
+                    </span>
+                </a>
+            </div>
+            {% endif %}
             <div class="offcanvas offcanvas-start bg-dark text-white" tabindex="-1" id="offcanvasNavbar"
                 aria-labelledby="offcanvasNavbarLabel" style="width: 250px;">
                 <div class="offcanvas-header">
@@ -41,37 +55,64 @@
                 </div>
                 <div class="offcanvas-body">
                     <ul class="navbar-nav flex-column">
+                        <!-- General Menu -->
                         <li class="nav-item">
-                            <a class="nav-link text-white" href="{{ url_for('auth.dashboard') }}">🏠 Dashboard</a>
+                            <a class="nav-link" href="{{ url_for('auth.dashboard') }}">
+                                <i class="bi bi-house-door-fill me-2"></i>Dashboard
+                            </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-white" href="{{ url_for('chats.index') }}">💬 Chat Windows</a>
+                            <a class="nav-link" href="{{ url_for('chats.index') }}">
+                                <i class="bi bi-chat-dots-fill me-2"></i>Chat Windows
+                            </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-white" href="{{ url_for('auth.profile') }}">👤 Profile</a>
+                            <a class="nav-link" href="{{ url_for('auth.profile') }}">
+                                <i class="bi bi-person-fill me-2"></i>Profile
+                            </a>
                         </li>
+
                         <li>
-                            <hr class="dropdown-divider bg-light">
+                            <hr class="dropdown-divider">
                         </li>
+
+                        <!-- Admin Menu -->
                         {% if current_user.is_admin %}
                         <li class="nav-item">
-                            <a class="nav-link text-white" href="{{ url_for('quick_replies.index') }}">⚡ QuickReplies</a>
+                            <a class="nav-link" href="{{ url_for('admin.oa_health_check_page') }}">
+                                <i class="bi bi-heart-pulse-fill me-2"></i>OA Health Check
+                            </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-white" href="{{ url_for('line_admin.line_admin_index') }}">🔗 Line OA</a>
+                            <a class="nav-link" href="{{ url_for('line_admin.line_admin_index') }}">
+                                <i class="bi bi-link-45deg me-2"></i>Line OA
+                            </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-white" href="{{ url_for('oa_groups.index') }}">📂 OA Groups</a>
+                            <a class="nav-link" href="{{ url_for('quick_replies.index') }}">
+                                <i class="bi bi-lightning-charge-fill me-2"></i>Quick Replies
+                            </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-white" href="{{ url_for('admin.manage_users') }}">👥 Manage Users</a>
+                            <a class="nav-link" href="{{ url_for('oa_groups.index') }}">
+                                <i class="bi bi-folder-fill me-2"></i>OA Groups
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin.manage_users') }}">
+                                <i class="bi bi-people-fill me-2"></i>Manage Users
+                            </a>
                         </li>
                         <li>
-                            <hr class="dropdown-divider bg-light">
+                            <hr class="dropdown-divider">
                         </li>
                         {% endif %}
+
+                        <!-- Logout -->
                         <li class="nav-item">
-                            <a class="nav-link text-danger" href="{{ url_for('auth.logout') }}">🚪 Logout</a>
+                            <a class="nav-link text-danger" href="{{ url_for('auth.logout') }}">
+                                <i class="bi bi-box-arrow-right me-2"></i>Logout
+                            </a>
                         </li>
                     </ul>
                 </div>
@@ -84,37 +125,39 @@
 
     {# 1. แสดง Flash Messages #}
     {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% if page_type != 'chat' %} <div class="container mt-2"> {% endif %}
-            {% for category, message in messages %}
-                <div class="alert alert-{{ category }}">{{ message }}</div>
-            {% endfor %}
-            {% if page_type != 'chat' %} </div> {% endif %}
-        {% endif %}
+    {% if messages %}
+    {% if page_type != 'chat' %} <div class="container mt-2"> {% endif %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+        {% if page_type != 'chat' %}
+    </div> {% endif %}
+    {% endif %}
     {% endwith %}
 
     {# 2. เปิด-ปิด Tag Wrapper #}
     {% if page_type == 'chat' %}
     <div class="chat-page-wrapper">
-    {% else %}
-    <main class="container mt-4">
-    {% endif %}
+        {% else %}
+        <main class="container mt-4">
+            {% endif %}
 
-    {# 3. Block Content #}
-    {% block content %}{% endblock %}
+            {# 3. Block Content #}
+            {% block content %}{% endblock %}
 
-    {# 4. ปิด Tag Wrapper #}
-    {% if page_type == 'chat' %}
+            {# 4. ปิด Tag Wrapper #}
+            {% if page_type == 'chat' %}
     </div>
     {% else %}
     </main>
     {% endif %}
-    
+
     {# --- Scripts (เหมือนเดิม) --- #}
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-    
+
     {% block scripts %}{% endblock %}
 
 </body>
+
 </html>

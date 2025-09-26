@@ -5,7 +5,7 @@ from flask import current_app, url_for , Response
 from flask import Blueprint, render_template, request , session , abort 
 from flask_login import login_required , current_user
 from app.extensions import db
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta , timezone
 from . import bp   # ใช้ bp ที่ import มาจาก __init__.py
 from flask import jsonify
 from app.models import  db 
@@ -81,27 +81,34 @@ def index():
 
     conversations = []
     for msg, user in users_with_messages:
-        unread_count = 0
+        last_unread_timestamp = None
+
+        # 1. สร้าง query พื้นฐานสำหรับนับข้อความที่ยังไม่อ่าน
+        query_unread = LineMessage.query.filter(
+            LineMessage.user_id == user.user_id,
+            LineMessage.line_account_id == user.line_account_id,
+            LineMessage.is_outgoing == False
+        )
+
+        # 2. เพิ่มเงื่อนไขเวลา ถ้าเคยอ่านแล้ว
         if user.last_read_timestamp:
-            # นับข้อความที่มาจากลูกค้า (is_outgoing=False) และใหม่กว่าเวลาที่อ่านล่าสุด
-            unread_count = LineMessage.query.filter(
-                LineMessage.user_id == user.user_id,
-                LineMessage.line_account_id == user.line_account_id,
-                LineMessage.is_outgoing == False,
-                LineMessage.timestamp > user.last_read_timestamp
-            ).count()
-        else:
-            # ถ้ายังไม่เคยอ่านเลย ให้นับข้อความทั้งหมดจากลูกค้า
-             unread_count = LineMessage.query.filter_by(
-                user_id=user.user_id,
-                line_account_id=user.line_account_id,
-                is_outgoing=False
-            ).count()
+            query_unread = query_unread.filter(LineMessage.timestamp > user.last_read_timestamp)
+        
+        # 3. นับจำนวนข้อความที่ยังไม่อ่านจาก query ที่สร้างไว้
+        unread_count = query_unread.count()
+
+        # 4. ถ้ามีข้อความที่ยังไม่อ่าน ให้หาเวลาของข้อความล่าสุด
+        if unread_count > 0:
+            last_unread_message = query_unread.order_by(LineMessage.timestamp.desc()).first()
+            if last_unread_message:
+                # แปลงเป็น unix timestamp (วินาที)
+                last_unread_timestamp = last_unread_message.timestamp.replace(tzinfo=timezone.utc).timestamp()
 
         conversations.append({
             "message": msg,
             "user": user,
-            "unread_count": unread_count
+            "unread_count": unread_count,
+            "last_unread_timestamp": last_unread_timestamp
         })
 
     return render_template(
@@ -237,7 +244,9 @@ def get_messages_for_user(user_id):
             'last_message_prefix': last_message_prefix,
             'last_message_content': last_message_content,
             'status': line_user.status,
-            'picture_url': line_user.picture_url
+            'picture_url': line_user.picture_url,
+            'line_sent_successfully': latest_message.line_sent_successfully if latest_message else True,
+            'line_error_message': latest_message.line_error_message if latest_message else None
         }
         socketio.emit('update_conversation_list', conversation_data)
 
@@ -274,7 +283,9 @@ def get_messages_for_user(user_id):
             'content': content,
             'created_at': local_timestamp.strftime('%H:%M'),
             'full_datetime': local_timestamp.strftime('%d %b - %H:%M'),
-            'is_close_event': is_close_event # <-- [เพิ่ม] บรรทัดที่ขาดไปอยู่ตรงนี้ครับ
+            'is_close_event': is_close_event,
+            'line_sent_successfully': m.line_sent_successfully,
+            'line_error_message': m.line_error_message
         }
 
         if m.is_outgoing and m.admin:
@@ -319,81 +330,88 @@ def send_message():
         return jsonify({"status": "error", "message": "OA not found"}), 404
 
     # --- ส่วนที่ปรับปรุง ---
+    line_sent_successfully = True
     line_api_error_message = None # สร้างตัวแปรไว้เก็บ error จาก LINE
+
     try:
         line_bot_api = LineBotApi(account.channel_access_token)
+
         message_to_send = TextSendMessage(text=message_text)
         line_bot_api.push_message(user_id, message_to_send)
+
+        today_str = (datetime.utcnow()).strftime('%Y%m%d') # ใช้วันที่ของ UTC
+        delivery_stats = line_bot_api.get_push_message_delivery_statistics(date=today_str)
+
+        if delivery_stats.success is not None and delivery_stats.success <= 0:
+            line_sent_successfully = False
+            line_api_error_message = "Message sent but not delivered. User might have blocked the OA."
     
     except LineBotApiError as e:
-        line_api_error_message = e.error.message
-        print(f"LINE API Error: {line_api_error_message}")
+        line_sent_successfully = False
+        line_api_error_message = f"LINE API Error: {e.error.message}"
+        print(line_api_error_message)
     except Exception as e:
-        line_api_error_message = str(e)
-        print(f"An unexpected error occurred while sending to LINE: {line_api_error_message}")
-    # --- จบส่วนที่ปรับปรุง ---
+        line_sent_successfully = False
+        line_api_error_message = f"An unexpected error occurred: {str(e)}"
+        print(line_api_error_message)
 
     # บันทึกข้อความที่ส่งลงฐานข้อมูลของเรา (ส่วนนี้ทำงานไม่ว่า LINE จะส่งสำเร็จหรือไม่)
-    try:
-        new_message = LineMessage(
-            user_id=user_id,
-            line_account_id=oa_id,
-            message_type='text',
-            message_text=message_text,
-            is_outgoing=True,
-            timestamp=datetime.utcnow(),
-            admin_user_id=current_user.id
-            # ในอนาคตอาจเพิ่ม field `sent_status` เพื่อเก็บ error message ได้
-            # sent_status = line_api_error_message 
-        )
-        db.session.add(new_message)
-        db.session.commit()
+    
+    new_message = LineMessage(
+        user_id=user_id,
+        line_account_id=oa_id,
+        message_type='text',
+        message_text=message_text,
+        is_outgoing=True,
+        timestamp=datetime.utcnow(),
+        admin_user_id=current_user.id,
+        line_sent_successfully=line_sent_successfully,
+        line_error_message=line_api_error_message
+    )
+    db.session.add(new_message)
+    db.session.commit()
 
-        room_name = f"chat_{user_id}_{oa_id}"
-        message_data_for_socket = {
-            'id': new_message.id,
-            'sender_type': 'admin',
-            'message_type': new_message.message_type,
-            'content': new_message.message_text,
-            'full_datetime': (new_message.timestamp + timedelta(hours=7)).strftime('%d %b - %H:%M'),
-            'admin_email': current_user.email,
-            'oa_name': new_message.line_account.name,
+    room_name = f"chat_{user_id}_{oa_id}"
+    message_data_for_socket = {
+        'id': new_message.id,
+        'sender_type': 'admin',
+        'message_type': new_message.message_type,
+        'content': new_message.message_text,
+        'full_datetime': (new_message.timestamp + timedelta(hours=7)).strftime('%d %b - %H:%M'),
+        'admin_email': current_user.email,
+        'oa_name': new_message.line_account.name,
+        'user_id': user_id,
+        'oa_id': int(oa_id)
+    }
+    socketio.emit('new_message', message_data_for_socket, to=room_name)
+
+    line_user = LineUser.query.filter_by(user_id=user_id, line_account_id=oa_id).first()
+    if line_user:
+        conversation_data = {
             'user_id': user_id,
-            'oa_id': int(oa_id)
+            'line_account_id': int(oa_id),
+            'display_name': line_user.nickname or line_user.display_name or f"User: {user_id[:12]}...",
+            'oa_name': new_message.line_account.name,
+            'last_message_prefix': "คุณ:", # เพราะเป็นข้อความจากแอดมิน
+            'last_message_content': truncate_text(new_message.message_text),
+            'status': line_user.status,
+            'picture_url': line_user.picture_url
         }
-        socketio.emit('new_message', message_data_for_socket, to=room_name)
-
-        line_user = LineUser.query.filter_by(user_id=user_id, line_account_id=oa_id).first()
-        if line_user:
-            conversation_data = {
-                'user_id': user_id,
-                'line_account_id': int(oa_id),
-                'display_name': line_user.nickname or line_user.display_name or f"User: {user_id[:12]}...",
-                'oa_name': new_message.line_account.name,
-                'last_message_prefix': "คุณ:", # เพราะเป็นข้อความจากแอดมิน
-                'last_message_content': truncate_text(new_message.message_text),
-                'status': line_user.status,
-                'picture_url': line_user.picture_url
-            }
-            socketio.emit('update_conversation_list', conversation_data)
-
-        
-    except Exception as e:
-        db.session.rollback()
-        print(f"Error saving message to DB: {e}")
-        return jsonify({"status": "error", "message": "Failed to save message to database"}), 500
+        socketio.emit('update_conversation_list', conversation_data)
 
     # ส่งสถานะกลับไปให้ JavaScript พร้อมบอกว่าส่งไป LINE สำเร็จหรือไม่
     return jsonify({
         "status": "success",
-        "db_saved_successfully": True, # <--- JavaScript ต้องการตัวนี้
+        "db_saved_successfully": True,
+        "line_sent_successfully": line_sent_successfully,
+        "line_api_error_message": line_api_error_message,
         "id": new_message.id,
         "message_type": new_message.message_type,
         "content": new_message.message_text,
         "full_datetime": (new_message.timestamp + timedelta(hours=7)).strftime('%d %b - %H:%M'),
         "admin_email": current_user.email,
         "oa_name": new_message.line_account.name,
-        "sender_type": 'admin' # <--- เพิ่ม sender_type ด้วย
+        "sender_type": 'admin'
     })
 
 # แก้ไขข้อมูล users
@@ -740,7 +758,9 @@ def load_more(user_id):
             'sender_type': sender_type, 'message_type': m.message_type, 'content': content,
             'created_at': local_timestamp.strftime('%H:%M'),
             'full_datetime': local_timestamp.strftime('%d %b - %H:%M'),
-            'is_close_event': "'Closed'" in content if m.message_type == "event" else False
+            'is_close_event': "'Closed'" in content if m.message_type == "event" else False,
+            'line_sent_successfully': m.line_sent_successfully,
+            'line_error_message': m.line_error_message
         }
         if m.is_outgoing and m.admin:
             message_data['admin_email'] = m.admin.email

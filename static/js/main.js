@@ -1,5 +1,7 @@
 document.addEventListener('DOMContentLoaded', function () {
     // 1. STATE & VARIABLES
+    window.failedMessageQueue = {};
+    let frozenTimerValues = JSON.parse(sessionStorage.getItem('frozenTimers')) || {};
     let currentUserId = null;
     let currentOaId = null;
     let currentUserDbId = null;
@@ -44,6 +46,64 @@ document.addEventListener('DOMContentLoaded', function () {
     const fullNoteTextarea = document.getElementById('full-note-textarea');
     const newMessageAlert = document.getElementById('new-message-alert');
 
+
+    // =======================================================
+    // START: REAL-TIME UNREAD TIMER LOGIC
+    // =======================================================
+
+    /**
+     * แปลงจำนวนวินาทีทั้งหมดให้เป็นรูปแบบ MM:SS
+     * @param {number} totalSeconds - จำนวนวินาที
+     * @returns {string} - สตริงในรูปแบบ MM:SS
+     */
+    function formatTime(totalSeconds) {
+        if (totalSeconds < 0) totalSeconds = 0;
+
+        // 1. คำนวณ ชั่วโมง, นาที, และวินาที ให้เป็นเลขจำนวนเต็ม
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = Math.floor(totalSeconds % 60);
+
+        // 2. ทำให้เป็นเลข 2 หลักเสมอ (เช่น 01, 02)
+        const paddedMinutes = String(minutes).padStart(2, '0');
+        const paddedSeconds = String(seconds).padStart(2, '0');
+
+        // 3. เลือกว่าจะแสดงผลแบบไหน
+        if (hours > 0) {
+            // ถ้าเกิน 1 ชั่วโมง ให้แสดง ชั่วโมง:นาที:วินาที
+            const paddedHours = String(hours).padStart(2, '0');
+            return `${paddedHours}:${paddedMinutes}:${paddedSeconds}`;
+        } else {
+            // ถ้าไม่ถึงชั่วโมง ให้แสดงแค่ นาที:วินาที
+            return `${paddedMinutes}:${paddedSeconds}`;
+        }
+    }
+
+
+    /**
+     * อัปเดตตัวนับเวลาที่ยังไม่ได้อ่านทั้งหมดใน sidebar
+     */
+    function updateUnreadTimers() {
+        // เลือกทุกรายการแชทที่มี data-unread-timestamp
+        const conversationsWithUnread = document.querySelectorAll('[data-unread-timestamp]');
+
+        conversationsWithUnread.forEach(convElement => {
+            const timestamp = parseFloat(convElement.dataset.unreadTimestamp);
+            const userId = convElement.dataset.userid;
+            const oaId = convElement.dataset.oaid;
+            const timerElement = document.getElementById(`timer-${userId}-${oaId}`);
+
+            if (timerElement && timestamp) {
+                const nowInSeconds = Math.floor(Date.now() / 1000);
+                const secondsDiff = nowInSeconds - timestamp;
+                timerElement.textContent = formatTime(secondsDiff);
+            }
+        });
+    }
+
+    // =======================================================
+    // END: REAL-TIME UNREAD TIMER LOGIC
+    // =======================================================
 
     // 3. EVENT HANDLERS (ฟังก์ชันจัดการ Event)
 
@@ -99,6 +159,19 @@ document.addEventListener('DOMContentLoaded', function () {
 
         try {
             const data = await fetchChatData(userId, oaId);
+            const userLinkForTimer = document.querySelector(`.list-group-item-action[data-userid="${userId}"][data-oaid="${oaId}"]`);
+            if (userLinkForTimer) {
+                const timerElement = userLinkForTimer.querySelector('.unread-timer');
+                // ตรวจสอบว่ามีเวลาให้บันทึกหรือไม่
+                if (timerElement && timerElement.textContent) {
+                    const key = `${userId}-${oaId}`;
+                    // บันทึกเวลาล่าสุดลงใน "หน่วยความจำ"
+                    frozenTimerValues[key] = timerElement.textContent;
+                    sessionStorage.setItem('frozenTimers', JSON.stringify(frozenTimerValues));
+                }
+                // หยุดการอัปเดตเวลาครั้งต่อไป
+                userLinkForTimer.removeAttribute('data-unread-timestamp');
+            }
             currentFullNote = data.user.note || '';
 
             // Reset state
@@ -314,6 +387,17 @@ document.addEventListener('DOMContentLoaded', function () {
             // 4. นำเนื้อหาใหม่ไป "สวมทับ" ของเก่าบนหน้าเว็บจริง
             document.getElementById('user-list').innerHTML = newUserListContent;
             document.getElementById('sidebar-pagination-container').innerHTML = newPaginationContent;
+            for (const key in frozenTimerValues) {
+                if (frozenTimerValues.hasOwnProperty(key)) {
+                    const [userId, oaId] = key.split('-');
+                    const newTimerEl = document.getElementById(`timer-${userId}-${oaId}`);
+                    if (newTimerEl) {
+                        // นำค่าที่บันทึกไว้กลับมาแสดง
+                        newTimerEl.textContent = frozenTimerValues[key];
+                    }
+                }
+            }
+
 
             console.log('✅ Sidebar reloaded successfully.');
         } catch (error) {
@@ -404,37 +488,41 @@ document.addEventListener('DOMContentLoaded', function () {
         const messageText = replyMessageInput.value.trim();
         if (!messageText || !currentUserId) return;
 
-        // 1. สร้าง Optimistic Message (ยังไม่มี ID)
-        const optimisticMsg = {
-            content: messageText,
-            sender_type: 'admin',
-            message_type: 'text',
-            admin_email: currentUserEmail, // ใช้ตัวแปรที่ถูกต้อง
-            oa_name: (document.querySelector('#chat-header a') || document.querySelector('#chat-header small')).textContent.replace('@', '').trim(),
-            full_datetime: new Date().toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).replace(',', ' -')
-        };
-
-        // 2. แสดงผลทันที
-        appendMessage(messagesContainer, optimisticMsg);
-
-        // 3. Scroll ลงล่าง
-        setTimeout(() => {
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }, 0);
-
         const originalMessage = replyMessageInput.value;
         replyMessageInput.value = '';
         inlineQrResults.style.display = 'none';
 
+        const sendButton = document.getElementById('send-btn');
+        if (sendButton) sendButton.disabled = true;
+
         try {
-            // 4. ส่งข้อมูลไปเบื้องหลัง (ไม่ต้องสนใจ response)
-            await sendTextMessage(currentUserId, currentOaId, messageText);
+            // 1. เรียก API และรอผลลัพธ์
+            const result = await sendTextMessage(currentUserId, currentOaId, messageText);
+
+            // 2. ตรวจสอบว่า Server ทำงานสำเร็จหรือไม่
+            if (result && result.db_saved_successfully) {
+                // 3. ถ้าสำเร็จ, นำข้อมูลที่สมบูรณ์ (ซึ่งมีสถานะการส่ง) มาวาด UI
+                //    ฟังก์ชัน appendMessage -> createMessageElement จะจัดการเรื่องป้าย Error เอง
+                const promise = appendMessage(messagesContainer, result);
+
+                Promise.resolve(promise).then(() => {
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                });
+            } else {
+                throw new Error(result.message || 'Server did not process the message.');
+            }
         } catch (error) {
-            console.error('Send message error:', error);
-            alert('Failed to send message.');
+            console.error("Failed to send message:", error);
+            alert('การส่งข้อความล้มเหลว: ' + error.message);
             replyMessageInput.value = originalMessage;
+        } finally {
+            if (sendButton) sendButton.disabled = false;
         }
     }
+
+
+
+
 
     function handleImageSelection(event) {
         const file = event.target.files[0];
@@ -882,9 +970,18 @@ document.addEventListener('DOMContentLoaded', function () {
         this.style.height = (this.scrollHeight) + 'px';
     });
 
-
-
-
+    updateUnreadTimers();
+    // ตั้งให้ทำงานทุกๆ 1 วินาที
+    setInterval(updateUnreadTimers, 1000);
+    for (const key in frozenTimerValues) {
+        if (frozenTimerValues.hasOwnProperty(key)) {
+            const [userId, oaId] = key.split('-');
+            const timerEl = document.getElementById(`timer-${userId}-${oaId}`);
+            if (timerEl) {
+                timerEl.textContent = frozenTimerValues[key];
+            }
+        }
+    }
 
 
 });

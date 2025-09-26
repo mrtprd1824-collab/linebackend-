@@ -52,6 +52,10 @@ class LineAccount(db.Model):
     messages = db.relationship('LineMessage', back_populates='line_account', cascade="all, delete-orphan")
     users = db.relationship('LineUser', back_populates='line_account', cascade="all, delete-orphan")
     quick_replies = db.relationship('QuickReply', back_populates='line_account', cascade="all, delete-orphan")
+    is_active = db.Column(db.Boolean, default=True, nullable=False, index=True)
+    last_check_timestamp = db.Column(db.DateTime, nullable=True)
+    last_check_status_message = db.Column(db.String, nullable=True)
+
     manager_url = db.Column(db.String(255), nullable=True)
     def __repr__(self):
         return f"<LineAccount {self.name}>"
@@ -100,6 +104,8 @@ class LineMessage(db.Model):
     is_outgoing = db.Column(db.Boolean, default=False, index=True) # <-- [เพิ่ม] สำหรับกรองข้อความเข้า-ออก
     timestamp = db.Column(db.DateTime, default=lambda: datetime.now(BANGKOK_TZ), index=True) # <-- [เพิ่ม] สำคัญมาก! สำหรับเรียงลำดับข้อความ
     __table_args__ = (db.Index("ix_line_message_user_time", "user_id", "timestamp"),)
+    line_sent_successfully = db.Column(db.Boolean, default=True, nullable=False)
+    line_error_message = db.Column(db.String, nullable=True)
 
     def __repr__(self):
         return f"<LineMessage {self.user_id}: {self.message_text}>"

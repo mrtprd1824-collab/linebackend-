@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash , session
 from flask_login import login_user, logout_user, login_required, current_user
 from app.models import User, db
 from app.models import OAGroup
@@ -27,6 +27,8 @@ def login():
             flash("Invalid email or password", "danger")
             # แก้ไขจุดที่ 1: เพิ่ม redirect หลังจาก flash
             return redirect(url_for("auth.login"))
+        
+    session.permanent = True
             
     # แก้ไขจุดที่ 2: ระบุ path ของ template ให้ถูกต้อง
     return render_template("login.html")

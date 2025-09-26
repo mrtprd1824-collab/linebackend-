@@ -1,8 +1,8 @@
-"""Initial migration with correct models
+"""Initial database setup from models
 
-Revision ID: 88021398f4b4
+Revision ID: b69a5ffe3a7b
 Revises: 
-Create Date: 2025-09-21 16:18:42.240375
+Create Date: 2025-09-26 19:01:01.488767
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '88021398f4b4'
+revision = 'b69a5ffe3a7b'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -25,10 +25,17 @@ def upgrade():
     sa.Column('channel_secret', sa.String(length=255), nullable=False),
     sa.Column('channel_access_token', sa.String(length=255), nullable=False),
     sa.Column('webhook_path', sa.String(length=50), nullable=False),
+    sa.Column('is_active', sa.Boolean(), nullable=False),
+    sa.Column('last_check_timestamp', sa.DateTime(), nullable=True),
+    sa.Column('last_check_status_message', sa.String(), nullable=True),
+    sa.Column('manager_url', sa.String(length=255), nullable=True),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('channel_id'),
     sa.UniqueConstraint('webhook_path')
     )
+    with op.batch_alter_table('line_account', schema=None) as batch_op:
+        batch_op.create_index(batch_op.f('ix_line_account_is_active'), ['is_active'], unique=False)
+
     op.create_table('oa_group',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(length=100), nullable=False),
@@ -41,6 +48,9 @@ def upgrade():
     sa.Column('stickerId', sa.String(length=50), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
+    with op.batch_alter_table('sticker', schema=None) as batch_op:
+        batch_op.create_index('ix_package_sticker', ['packageId', 'stickerId'], unique=False)
+
     op.create_table('user',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('email', sa.String(length=120), nullable=False),
@@ -50,23 +60,35 @@ def upgrade():
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('email')
     )
+    with op.batch_alter_table('user', schema=None) as batch_op:
+        batch_op.create_index(batch_op.f('ix_user_role'), ['role'], unique=False)
+
     op.create_table('line_message',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('user_id', sa.String(length=255), nullable=True),
+    sa.Column('user_id', sa.String(length=255), nullable=False),
     sa.Column('line_account_id', sa.Integer(), nullable=False),
     sa.Column('admin_user_id', sa.Integer(), nullable=True),
     sa.Column('message_type', sa.String(length=50), nullable=False),
     sa.Column('message_text', sa.Text(), nullable=True),
     sa.Column('message_url', sa.String(length=255), nullable=True),
+    sa.Column('media_key', sa.String(length=512), nullable=True),
     sa.Column('sticker_id', sa.String(length=50), nullable=True),
     sa.Column('package_id', sa.String(length=50), nullable=True),
     sa.Column('is_outgoing', sa.Boolean(), nullable=True),
     sa.Column('timestamp', sa.DateTime(), nullable=True),
+    sa.Column('line_sent_successfully', sa.Boolean(), nullable=False),
+    sa.Column('line_error_message', sa.String(), nullable=True),
     sa.ForeignKeyConstraint(['admin_user_id'], ['user.id'], ),
     sa.ForeignKeyConstraint(['line_account_id'], ['line_account.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
     )
     with op.batch_alter_table('line_message', schema=None) as batch_op:
+        batch_op.create_index(batch_op.f('ix_line_message_admin_user_id'), ['admin_user_id'], unique=False)
+        batch_op.create_index(batch_op.f('ix_line_message_is_outgoing'), ['is_outgoing'], unique=False)
+        batch_op.create_index(batch_op.f('ix_line_message_line_account_id'), ['line_account_id'], unique=False)
+        batch_op.create_index(batch_op.f('ix_line_message_media_key'), ['media_key'], unique=False)
+        batch_op.create_index(batch_op.f('ix_line_message_message_type'), ['message_type'], unique=False)
+        batch_op.create_index(batch_op.f('ix_line_message_timestamp'), ['timestamp'], unique=False)
         batch_op.create_index('ix_line_message_user_time', ['user_id', 'timestamp'], unique=False)
 
     op.create_table('line_user',
@@ -79,6 +101,7 @@ def upgrade():
     sa.Column('phone', sa.String(length=50), nullable=True),
     sa.Column('note', sa.Text(), nullable=True),
     sa.Column('status', sa.String(length=50), nullable=False),
+    sa.Column('unread_count', sa.Integer(), nullable=False),
     sa.Column('last_read_timestamp', sa.DateTime(), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.Column('last_seen_at', sa.DateTime(), nullable=True),
@@ -87,6 +110,10 @@ def upgrade():
     sa.UniqueConstraint('line_account_id', 'user_id', name='_line_account_user_uc')
     )
     with op.batch_alter_table('line_user', schema=None) as batch_op:
+        batch_op.create_index(batch_op.f('ix_line_user_created_at'), ['created_at'], unique=False)
+        batch_op.create_index(batch_op.f('ix_line_user_last_seen_at'), ['last_seen_at'], unique=False)
+        batch_op.create_index(batch_op.f('ix_line_user_line_account_id'), ['line_account_id'], unique=False)
+        batch_op.create_index(batch_op.f('ix_line_user_phone'), ['phone'], unique=False)
         batch_op.create_index(batch_op.f('ix_line_user_status'), ['status'], unique=False)
 
     op.create_table('oa_group_association',
@@ -104,23 +131,50 @@ def upgrade():
     sa.ForeignKeyConstraint(['line_account_id'], ['line_account.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
     )
+    with op.batch_alter_table('quick_reply', schema=None) as batch_op:
+        batch_op.create_index(batch_op.f('ix_quick_reply_line_account_id'), ['line_account_id'], unique=False)
+        batch_op.create_index(batch_op.f('ix_quick_reply_shortcut'), ['shortcut'], unique=False)
+
     # ### end Alembic commands ###
 
 
 def downgrade():
     # ### commands auto generated by Alembic - please adjust! ###
+    with op.batch_alter_table('quick_reply', schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f('ix_quick_reply_shortcut'))
+        batch_op.drop_index(batch_op.f('ix_quick_reply_line_account_id'))
+
     op.drop_table('quick_reply')
     op.drop_table('oa_group_association')
     with op.batch_alter_table('line_user', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('ix_line_user_status'))
+        batch_op.drop_index(batch_op.f('ix_line_user_phone'))
+        batch_op.drop_index(batch_op.f('ix_line_user_line_account_id'))
+        batch_op.drop_index(batch_op.f('ix_line_user_last_seen_at'))
+        batch_op.drop_index(batch_op.f('ix_line_user_created_at'))
 
     op.drop_table('line_user')
     with op.batch_alter_table('line_message', schema=None) as batch_op:
         batch_op.drop_index('ix_line_message_user_time')
+        batch_op.drop_index(batch_op.f('ix_line_message_timestamp'))
+        batch_op.drop_index(batch_op.f('ix_line_message_message_type'))
+        batch_op.drop_index(batch_op.f('ix_line_message_media_key'))
+        batch_op.drop_index(batch_op.f('ix_line_message_line_account_id'))
+        batch_op.drop_index(batch_op.f('ix_line_message_is_outgoing'))
+        batch_op.drop_index(batch_op.f('ix_line_message_admin_user_id'))
 
     op.drop_table('line_message')
+    with op.batch_alter_table('user', schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f('ix_user_role'))
+
     op.drop_table('user')
+    with op.batch_alter_table('sticker', schema=None) as batch_op:
+        batch_op.drop_index('ix_package_sticker')
+
     op.drop_table('sticker')
     op.drop_table('oa_group')
+    with op.batch_alter_table('line_account', schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f('ix_line_account_is_active'))
+
     op.drop_table('line_account')
     # ### end Alembic commands ###
