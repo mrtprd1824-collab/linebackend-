@@ -10,6 +10,7 @@ from . import bp   # ใช้ bp ที่ import มาจาก __init__.py
 from flask import jsonify
 from app.models import  db 
 from sqlalchemy import func, case
+from sqlalchemy.orm import joinedload
 from linebot import LineBotApi
 from linebot.models import TextSendMessage , ImageSendMessage , StickerSendMessage
 from linebot.exceptions import LineBotApiError
@@ -55,9 +56,14 @@ def format_message_for_api(message):
 
     if message.is_outgoing and message.admin:
         message_data['admin_email'] = message.admin.email
-        message_data['oa_name'] = message.line_account.name
+        message_data['oa_name'] = message.line_account.name if message.line_account else 'N/A'
         
     return message_data
+
+def truncate_text(text, length=10):
+    if text and len(text) > length:
+        return text[:length] + '...'
+    return text
 
 def truncate_text(text, length=10):
     """ตัดข้อความและต่อท้ายด้วย '...' ถ้ามันยาวเกินที่กำหนด"""
@@ -70,109 +76,107 @@ def truncate_text(text, length=10):
 @bp.route("/")
 @login_required
 def index():
-    all_groups = OAGroup.query.order_by(OAGroup.name).all()
-    selected_group_ids = session.get("active_group_ids", [])
-    status_filter = request.args.get('status_filter', 'all')
-    page = request.args.get('page', 1, type=int)
-    per_page = 20
+    try:
+        all_groups = OAGroup.query.order_by(OAGroup.name).all()
+        selected_group_ids = session.get("active_group_ids", [])
+        status_filter = request.args.get('status_filter', 'all')
+        page = request.args.get('page', 1, type=int)
+        per_page = 20
 
-    subquery = db.session.query(
-        LineMessage.user_id,
-        LineMessage.line_account_id,
-        func.max(LineMessage.timestamp).label('max_timestamp')
-    ).group_by(LineMessage.user_id, LineMessage.line_account_id).subquery()
-
-    query = db.session.query(
-        LineMessage, LineUser
-    ).join(
-        subquery,
-        (LineMessage.user_id == subquery.c.user_id) &
-        (LineMessage.line_account_id == subquery.c.line_account_id) &
-        (LineMessage.timestamp == subquery.c.max_timestamp)
-    ).join(
-        LineUser,
-        (LineMessage.user_id == LineUser.user_id) &
-        (LineMessage.line_account_id == LineUser.line_account_id)
-    )
-
-    if status_filter != 'all':
-        query = query.filter(LineUser.status == status_filter)
-
-    if selected_group_ids:
-        query = query.join(LineAccount, LineMessage.line_account_id == LineAccount.id)\
-                     .filter(LineAccount.groups.any(OAGroup.id.in_(selected_group_ids)))
-        
-    sort_order = case(
-        (LineUser.status == 'closed', 1),
-        else_=0
-    )
-        
-    pagination = query.order_by(
-        sort_order.asc(),
-        subquery.c.max_timestamp.desc()
-    ).paginate(page=page, per_page=per_page, error_out=False)
-
-    users_with_messages = pagination.items
-
-    # --- [OPTIMIZED] แก้ปัญหา N+1 Query ---
-    # 1. สร้างเงื่อนไขการนับ unread count สำหรับแต่ละ user
-    conditions = []
-    for msg, user in users_with_messages:
-        sub_condition = (
-            (LineMessage.user_id == user.user_id) &
-            (LineMessage.line_account_id == user.line_account_id) &
-            (LineMessage.is_outgoing == False)
-        )
-        if user.last_read_timestamp:
-            sub_condition = sub_condition & (LineMessage.timestamp > user.last_read_timestamp)
-        conditions.append(sub_condition)
-
-    # 2. Query เพื่อนับ unread count ทั้งหมดในครั้งเดียว
-    unread_counts_map = {}
-    if conditions:
-        query_for_counts = db.session.query(
-            LineMessage.user_id, 
+        subquery = db.session.query(
+            LineMessage.user_id,
             LineMessage.line_account_id,
-            func.count(LineMessage.id)
-        ).filter(or_(*conditions)).group_by(LineMessage.user_id, LineMessage.line_account_id).all()
-        
-        # แปลงผลลัพธ์เป็น Dictionary ที่ใช้ง่าย: {(user_id, line_account_id): count}
-        for uid, l_acc_id, count in query_for_counts:
-            unread_counts_map[(uid, l_acc_id)] = count
-    # --- จบส่วน Optimized ---
-            
-    conversations = []
-    for msg, user in users_with_messages:
-        # 3. ดึงค่า unread count จาก map ที่เตรียมไว้ (ไม่ต้อง query ใหม่)
-        unread_count = unread_counts_map.get((user.user_id, user.line_account_id), 0)
-        
-        last_unread_timestamp = None
-        if unread_count > 0:
-            last_unread_message = LineMessage.query.filter(
-                LineMessage.user_id == user.user_id,
-                LineMessage.line_account_id == user.line_account_id,
-                LineMessage.is_outgoing == False,
-                LineMessage.timestamp > user.last_read_timestamp if user.last_read_timestamp else True
-            ).order_by(LineMessage.timestamp.desc()).first()
-            if last_unread_message:
-                last_unread_timestamp = last_unread_message.timestamp.replace(tzinfo=timezone.utc).timestamp()
+            func.max(LineMessage.timestamp).label('max_timestamp')
+        ).group_by(LineMessage.user_id, LineMessage.line_account_id).subquery()
 
-        conversations.append({
-            "message": msg,
-            "user": user,
-            "unread_count": unread_count,
-            "last_unread_timestamp": last_unread_timestamp
-        })
-    
-    # [FIXED] ตรวจสอบให้แน่ใจว่า return statement อยู่นอก loop และถูกเรียกเสมอ
-    return render_template(
-        "chats/index.html",
-        conversations=conversations,
-        pagination=pagination,
-        all_groups=all_groups,
-        selected_group_ids=selected_group_ids,
-        status_filter=status_filter
-    )
+        # [FIXED] เพิ่ม Eager Loading ด้วย options(joinedload(...))
+        query = db.session.query(
+            LineMessage, LineUser
+        ).join(
+            subquery,
+            (LineMessage.user_id == subquery.c.user_id) &
+            (LineMessage.line_account_id == subquery.c.line_account_id) &
+            (LineMessage.timestamp == subquery.c.max_timestamp)
+        ).join(
+            LineUser,
+            (LineMessage.user_id == LineUser.user_id) &
+            (LineMessage.line_account_id == LineUser.line_account_id)
+        ).options(
+            joinedload(LineMessage.line_account), # <-- บอกให้โหลด LineAccount มาพร้อมกัน
+            joinedload(LineMessage.admin)         # <-- บอกให้โหลด Admin มาพร้อมกัน (ถ้ามี)
+        )
+
+        if status_filter != 'all':
+            query = query.filter(LineUser.status == status_filter)
+
+        if selected_group_ids:
+            query = query.join(LineAccount, LineMessage.line_account_id == LineAccount.id)\
+                         .filter(LineAccount.groups.any(OAGroup.id.in_(selected_group_ids)))
+            
+        sort_order = case(
+            (LineUser.status == 'closed', 1),
+            else_=0
+        )
+            
+        pagination = query.order_by(
+            sort_order.asc(),
+            subquery.c.max_timestamp.desc()
+        ).paginate(page=page, per_page=per_page, error_out=False)
+
+        users_with_messages = pagination.items
+        
+        # --- [OPTIMIZED] แก้ปัญหา N+1 Query ---
+        user_info_for_unread = [
+            (user.user_id, user.line_account_id, user.last_read_timestamp)
+            for msg, user in users_with_messages
+        ]
+        
+        unread_counts_map = {}
+        if user_info_for_unread:
+            conditions = []
+            for uid, l_acc_id, last_read in user_info_for_unread:
+                base_condition = (
+                    (LineMessage.user_id == uid) &
+                    (LineMessage.line_account_id == l_acc_id) &
+                    (LineMessage.is_outgoing == False)
+                )
+                if last_read:
+                    base_condition = base_condition & (LineMessage.timestamp > last_read)
+                conditions.append(base_condition)
+
+            if conditions:
+                query_for_counts = db.session.query(
+                    LineMessage.user_id, 
+                    LineMessage.line_account_id,
+                    func.count(LineMessage.id)
+                ).filter(or_(*conditions)).group_by(LineMessage.user_id, LineMessage.line_account_id).all()
+                
+                unread_counts_map = {(uid, l_id): count for uid, l_id, count in query_for_counts}
+        # --- จบส่วน Optimized ---
+                
+        conversations = []
+        for msg, user in users_with_messages:
+            unread_count = unread_counts_map.get((user.user_id, user.line_account_id), 0)
+            
+            conversations.append({
+                "message": msg,
+                "user": user,
+                "unread_count": unread_count,
+            })
+        
+        return render_template(
+            "chats/index.html",
+            conversations=conversations,
+            pagination=pagination,
+            all_groups=all_groups,
+            selected_group_ids=selected_group_ids,
+            status_filter=status_filter
+        )
+    except Exception as e:
+        db.session.rollback() # <--- เพิ่ม Rollback เมื่อเกิด Exception
+        current_app.logger.error(f"Error in chats.index: {e}")
+        traceback.print_exc()
+        abort(500, "An error occurred while loading chats.")
 
 
 @bp.route("/<user_id>", endpoint="show")
