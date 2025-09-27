@@ -52,7 +52,7 @@ class LineAccount(db.Model):
     messages = db.relationship('LineMessage', back_populates='line_account', cascade="all, delete-orphan")
     users = db.relationship('LineUser', back_populates='line_account', cascade="all, delete-orphan")
     quick_replies = db.relationship('QuickReply', back_populates='line_account', cascade="all, delete-orphan")
-    is_active = db.Column(db.Boolean, default=True, nullable=False, index=True)
+    is_active = db.Column(db.Boolean, nullable=False, server_default='true', index=True)
     last_check_timestamp = db.Column(db.DateTime, nullable=True)
     last_check_status_message = db.Column(db.String, nullable=True)
 

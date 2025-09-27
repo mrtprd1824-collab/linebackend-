@@ -1,8 +1,8 @@
-"""Initialize database with all final models
+"""Add is_active to LineAccount with default
 
-Revision ID: f369a764bd0a
+Revision ID: 38d75f94b5a7
 Revises: 
-Create Date: 2025-09-27 09:35:42.449665
+Create Date: 2025-09-27 11:40:50.965105
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'f369a764bd0a'
+revision = '38d75f94b5a7'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -25,7 +25,7 @@ def upgrade():
     sa.Column('channel_secret', sa.String(length=255), nullable=False),
     sa.Column('channel_access_token', sa.String(length=255), nullable=False),
     sa.Column('webhook_path', sa.String(length=50), nullable=False),
-    sa.Column('is_active', sa.Boolean(), nullable=False),
+    sa.Column('is_active', sa.Boolean(), server_default='true', nullable=False),
     sa.Column('last_check_timestamp', sa.DateTime(), nullable=True),
     sa.Column('last_check_status_message', sa.String(), nullable=True),
     sa.Column('manager_url', sa.String(length=255), nullable=True),
