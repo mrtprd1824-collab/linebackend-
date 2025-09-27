@@ -15,6 +15,10 @@ from flask_socketio import join_room, leave_room
 from linebot.models import (
     FollowEvent, UnfollowEvent, MessageEvent
 )
+from linebot.models import (
+    FollowEvent, UnfollowEvent, MessageEvent,
+    TextMessage, ImageMessage, StickerMessage  # <--- 1. เพิ่ม Model ของ Message Type
+)
 
 
 @bp.route("/<string:webhook_path>/callback", methods=["POST"])
@@ -47,6 +51,7 @@ def callback(webhook_path):
             if isinstance(event, FollowEvent):
                 user_id = event.source.user_id
                 user = LineUser.query.filter_by(user_id=user_id, line_account_id=line_account.id).first()
+
                 if not user: # ถ้าเป็น user ใหม่ที่ไม่เคยมีใน DB มาก่อน
                     user = LineUser(line_account_id=line_account.id, user_id=user_id)
                     db.session.add(user)
@@ -92,46 +97,46 @@ def callback(webhook_path):
                 msg_type = event.message.type
                 new_msg = None
 
-                if msg_type == 'text':
+                if isinstance(event.message, TextMessage):
                     new_msg = LineMessage(
                         line_account_id=line_account.id, user_id=user_id,
                         message_type="text", message_text=event.message.text,
                         timestamp=datetime.utcnow(), is_outgoing=False
                     )
 
-            elif msg_type == "image":
-                message_id = event["message"]["id"]
-                message_content = line_bot_api.get_message_content(message_id)
-                file_name = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{message_id}.jpg"
-                save_path = os.path.join(
-                    current_app.root_path, "..", "static", "uploads", file_name
-                )
-                os.makedirs(os.path.dirname(save_path), exist_ok=True)
-                with open(save_path, "wb") as f:
-                    for chunk in message_content.iter_content():
-                        f.write(chunk)
+                # --- ตรวจสอบว่าเป็นข้อความรูปภาพ ---
+                elif isinstance(event.message, ImageMessage):
+                    message_id = event.message.id # <--- 3. ใช้ dot notation
+                    message_content = line_bot_api.get_message_content(message_id)
+                    
+                    file_name = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{message_id}.jpg"
+                    save_path = os.path.join(current_app.root_path, "..", "static", "uploads", file_name)
+                    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+                    
+                    with open(save_path, "wb") as f:
+                        for chunk in message_content.iter_content():
+                            f.write(chunk)
 
-                new_msg = LineMessage(
-                    line_account_id=line_account.id,
-                    user_id=user_id,
-                    message_type="image",
-                    message_url=f"/static/uploads/{file_name}",
-                    timestamp=datetime.utcnow()
-                )
+                    new_msg = LineMessage(
+                        line_account_id=line_account.id, user_id=user_id,
+                        message_type="image",
+                        message_url=f"/static/uploads/{file_name}",
+                        timestamp=datetime.utcnow(), is_outgoing=False
+                    )
 
-            elif msg_type == "sticker":
-                new_msg = LineMessage(
-                    line_account_id=line_account.id,
-                    user_id=user_id,
-                    message_type="sticker",
-                    sticker_id=event["message"]["stickerId"],
-                    package_id=event["message"]["packageId"],
-                    timestamp=datetime.utcnow()
-                )
-
-            else:
-                # message ประเภทอื่นยังไม่รองรับ
-                continue
+                # --- ตรวจสอบว่าเป็นสติกเกอร์ ---
+                elif isinstance(event.message, StickerMessage):
+                    new_msg = LineMessage(
+                        line_account_id=line_account.id, user_id=user_id,
+                        message_type="sticker",
+                        sticker_id=event.message.sticker_id, # <--- 3. ใช้ dot notation
+                        package_id=event.message.package_id, # <--- 3. ใช้ dot notation
+                        timestamp=datetime.utcnow(), is_outgoing=False
+                    )
+                
+                # --- ถ้าเป็น Message Type อื่นๆ ที่ไม่รองรับ ให้ข้ามไป ---
+                else:
+                    continue
             
             if new_msg:
                 db.session.add(new_msg)
