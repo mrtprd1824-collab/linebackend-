@@ -82,6 +82,7 @@ class LineUser(db.Model):
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True) # <-- [เพิ่ม] สำหรับเรียงลำดับ user ใหม่
     last_seen_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, index=True) # <-- [เพิ่ม] สำหรับเรียงลำดับ user ที่ active
+    is_blocked = db.Column(db.Boolean, default=False, nullable=False, index=True)
 
     __table_args__ = (db.UniqueConstraint('line_account_id', 'user_id', name='_line_account_user_uc'),)
 

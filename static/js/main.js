@@ -158,27 +158,29 @@ document.addEventListener('DOMContentLoaded', function () {
         messagesContainer.innerHTML = '<p class="text-center text-muted">Loading messages...</p>';
 
         try {
+            // 1. ดึงข้อมูลแชททั้งหมดจาก Server
             const data = await fetchChatData(userId, oaId);
+            console.log("Data received from server for this user:", data.user);
+
+            // --- 2. จัดการเรื่อง Timer (โค้ดส่วนนี้ถูกต้องแล้ว) ---
             const userLinkForTimer = document.querySelector(`.list-group-item-action[data-userid="${userId}"][data-oaid="${oaId}"]`);
             if (userLinkForTimer) {
                 const timerElement = userLinkForTimer.querySelector('.unread-timer');
-                // ตรวจสอบว่ามีเวลาให้บันทึกหรือไม่
                 if (timerElement && timerElement.textContent) {
                     const key = `${userId}-${oaId}`;
-                    // บันทึกเวลาล่าสุดลงใน "หน่วยความจำ"
                     frozenTimerValues[key] = timerElement.textContent;
                     sessionStorage.setItem('frozenTimers', JSON.stringify(frozenTimerValues));
                 }
-                // หยุดการอัปเดตเวลาครั้งต่อไป
                 userLinkForTimer.removeAttribute('data-unread-timestamp');
             }
-            currentFullNote = data.user.note || '';
 
-            // Reset state
+            // --- 3. อัปเดต State ของแอปพลิเคชัน ---
+            currentFullNote = data.user.note || '';
             currentUserDbId = data.user.db_id;
             currentOffset = data.messages.length;
             totalMessages = data.total_messages;
             isLoadingMore = false;
+
 
             const userLink = document.querySelector(`.list-group-item-action[data-userid="${userId}"]`);
             if (userLink) {
@@ -238,6 +240,21 @@ document.addEventListener('DOMContentLoaded', function () {
                 `}
                 </form>
             `;
+
+            const replyFormEl = document.getElementById('reply-form');
+            const blockedAlertEl = document.getElementById('blocked-user-alert');
+
+            if (replyFormEl && blockedAlertEl) {
+                if (data.user.is_blocked) {
+                    // ถ้า User บล็อก: ซ่อนฟอร์ม, แสดงการแจ้งเตือน
+                    replyFormEl.classList.add('d-none');
+                    blockedAlertEl.classList.remove('d-none');
+                } else {
+                    // ถ้า User ไม่ได้บล็อก: แสดงฟอร์ม, ซ่อนการแจ้งเตือน
+                    replyFormEl.classList.remove('d-none');
+                    blockedAlertEl.classList.add('d-none');
+                }
+            }
 
             // Render Messages
             messagesContainer.innerHTML = '';
@@ -496,18 +513,22 @@ document.addEventListener('DOMContentLoaded', function () {
         if (sendButton) sendButton.disabled = true;
 
         try {
-            // 1. เรียก API และรอผลลัพธ์
+            // 1. เรียก API และรอจนกว่าจะได้ผลลัพธ์กลับมา
             const result = await sendTextMessage(currentUserId, currentOaId, messageText);
 
             // 2. ตรวจสอบว่า Server ทำงานสำเร็จหรือไม่
             if (result && result.db_saved_successfully) {
-                // 3. ถ้าสำเร็จ, นำข้อมูลที่สมบูรณ์ (ซึ่งมีสถานะการส่ง) มาวาด UI
-                //    ฟังก์ชัน appendMessage -> createMessageElement จะจัดการเรื่องป้าย Error เอง
+                // 3. ถ้าสำเร็จ, นำข้อมูลที่สมบูรณ์จาก Server มาวาด UI
                 const promise = appendMessage(messagesContainer, result);
 
                 Promise.resolve(promise).then(() => {
                     messagesContainer.scrollTop = messagesContainer.scrollHeight;
                 });
+
+                // --- ★★★ 4. ตรวจสอบสถานะและเรียก markMessageAsFailed ที่นี่ ★★★ ---
+                if (!result.line_sent_successfully) {
+                    markMessageAsFailed(result.id, result.line_api_error_message || 'ส่งข้อความไป LINE ไม่สำเร็จ');
+                }
             } else {
                 throw new Error(result.message || 'Server did not process the message.');
             }

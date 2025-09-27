@@ -12,6 +12,9 @@ from datetime import datetime
 # [สำคัญ] เพิ่ม import ที่จำเป็น
 from app.extensions import socketio
 from flask_socketio import join_room, leave_room
+from linebot.models import (
+    FollowEvent, UnfollowEvent, MessageEvent
+)
 
 
 @bp.route("/<string:webhook_path>/callback", methods=["POST"])
@@ -27,125 +30,148 @@ def callback(webhook_path):
     line_bot_api = LineBotApi(line_account.channel_access_token)
 
     try:
-        handler.handle(body, signature)
-        data = json.loads(body)
-        events = data.get("events", [])
+        events = handler.parser.parse(body, signature)
 
         for event in events:
-            user_id = event.get("source", {}).get("userId")
-            if not user_id:
-                continue
+            # --- 1. จัดการ Event การบล็อก (Unfollow) ---
+            if isinstance(event, UnfollowEvent):
+                user_id = event.source.user_id
+                user = LineUser.query.filter_by(user_id=user_id, line_account_id=line_account.id).first()
+                if user:
+                    user.is_blocked = True
+                    db.session.commit()
+                    print(f">>> User {user_id} has BLOCKED/UNFOLLOWED. Marked as blocked.")
+                continue # จบการทำงานสำหรับ Event นี้
 
-            # --- 1. ค้นหาหรือสร้าง LineUser ---
-            line_user = LineUser.query.filter_by(
-                line_account_id=line_account.id, user_id=user_id
-            ).first()
-
-            if not line_user:
-                line_user = LineUser(line_account_id=line_account.id, user_id=user_id)
-                db.session.add(line_user) # เพิ่ม user ใหม่เข้าไปใน session ก่อน
-            
-            # อัปเดต Profile (ถ้าทำได้)
-            try:
-                profile = line_bot_api.get_profile(user_id)
-                line_user.display_name = profile.display_name
-                line_user.picture_url = profile.picture_url
-            except Exception as e:
-                print(f"Could not get profile for {user_id}: {e}")
-
-            # --- [แก้ไข] ย้ายการอัปเดตสถานะและเวลามาไว้ตรงนี้ ---
-            if line_user.status == 'closed': # สมมติว่าสถานะปิดเคสคือ 'closed'
-                line_user.status = 'unread' # ถ้าเคสปิดไปแล้ว ให้เปิดใหม่เป็น unread
-                line_user.unread_count = 1
-            else:
-                line_user.unread_count = (line_user.unread_count or 0) + 1
+            # --- 2. จัดการ Event การแอดเพื่อน/ปลดบล็อก (Follow) ---
+            if isinstance(event, FollowEvent):
+                user_id = event.source.user_id
+                user = LineUser.query.filter_by(user_id=user_id, line_account_id=line_account.id).first()
+                if not user: # ถ้าเป็น user ใหม่ที่ไม่เคยมีใน DB มาก่อน
+                    user = LineUser(line_account_id=line_account.id, user_id=user_id)
+                    db.session.add(user)
                 
-            line_user.last_seen_at = datetime.utcnow()
+                user.is_blocked = False # ไม่ว่าจะแอดใหม่หรือปลดบล็อก สถานะคือ "ไม่ถูกบล็อก"
+                
+                try: # พยายามดึงโปรไฟล์
+                    profile = line_bot_api.get_profile(user_id)
+                    user.display_name = profile.display_name
+                    user.picture_url = profile.picture_url
+                except Exception as e:
+                    print(f"Could not get profile for new follower {user_id}: {e}")
+                
+                db.session.commit()
+                print(f">>> User {user_id} has FOLLOWED/UNBLOCKED. Marked as NOT blocked.")
+                continue # จบการทำงานสำหรับ Event นี้
 
-            db.session.commit()
+            # --- 3. จัดการ Event ที่เป็นข้อความ (MessageEvent) ---
+            if isinstance(event, MessageEvent):
+                user_id = event.source.user_id
+                line_user = LineUser.query.filter_by(line_account_id=line_account.id, user_id=user_id).first()
 
-            # --- 2. บันทึกข้อความที่เข้ามา (ถ้ามี) ---
-            new_msg = None # 1. [เพิ่ม] กำหนดค่าเริ่มต้นให้ new_msg
-            if event.get("type") == "message":
-                msg_type = event["message"]["type"]
+                # สร้าง user ถ้ายังไม่มี (กรณีที่ได้รับข้อความครั้งแรก แต่ไม่มี follow event)
+                if not line_user:
+                    line_user = LineUser(line_account_id=line_account.id, user_id=user_id)
+                    db.session.add(line_user)
+                    try:
+                        profile = line_bot_api.get_profile(user_id)
+                        line_user.display_name = profile.display_name
+                        line_user.picture_url = profile.picture_url
+                    except Exception as e:
+                        print(f"Could not get profile for {user_id}: {e}")
 
-                if msg_type == "text":
+                # อัปเดตสถานะเมื่อได้รับข้อความ
+                if line_user.status == 'closed':
+                    line_user.status = 'unread'
+                line_user.unread_count = (line_user.unread_count or 0) + 1
+                line_user.last_seen_at = datetime.utcnow()
+                line_user.is_blocked = False # ถ้าส่งข้อความมาได้ แสดงว่าไม่บล็อก
+                db.session.commit()
+
+                # บันทึกข้อความลง DB
+                msg_type = event.message.type
+                new_msg = None
+
+                if msg_type == 'text':
                     new_msg = LineMessage(
                         line_account_id=line_account.id, user_id=user_id,
-                        message_type="text", message_text=event["message"]["text"],
+                        message_type="text", message_text=event.message.text,
                         timestamp=datetime.utcnow(), is_outgoing=False
                     )
 
-                elif msg_type == "image":
-                    message_id = event["message"]["id"]
-                    message_content = line_bot_api.get_message_content(message_id)
-                    file_name = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{message_id}.jpg"
-                    save_path = os.path.join(
-                        current_app.root_path, "..", "static", "uploads", file_name
-                    )
-                    os.makedirs(os.path.dirname(save_path), exist_ok=True)
-                    with open(save_path, "wb") as f:
-                        for chunk in message_content.iter_content():
-                            f.write(chunk)
+            elif msg_type == "image":
+                message_id = event["message"]["id"]
+                message_content = line_bot_api.get_message_content(message_id)
+                file_name = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{message_id}.jpg"
+                save_path = os.path.join(
+                    current_app.root_path, "..", "static", "uploads", file_name
+                )
+                os.makedirs(os.path.dirname(save_path), exist_ok=True)
+                with open(save_path, "wb") as f:
+                    for chunk in message_content.iter_content():
+                        f.write(chunk)
 
-                    new_msg = LineMessage(
-                        line_account_id=line_account.id,
-                        user_id=user_id,
-                        message_type="image",
-                        message_url=f"/static/uploads/{file_name}",
-                        timestamp=datetime.utcnow()
-                    )
+                new_msg = LineMessage(
+                    line_account_id=line_account.id,
+                    user_id=user_id,
+                    message_type="image",
+                    message_url=f"/static/uploads/{file_name}",
+                    timestamp=datetime.utcnow()
+                )
 
-                elif msg_type == "sticker":
-                    new_msg = LineMessage(
-                        line_account_id=line_account.id,
-                        user_id=user_id,
-                        message_type="sticker",
-                        sticker_id=event["message"]["stickerId"],
-                        package_id=event["message"]["packageId"],
-                        timestamp=datetime.utcnow()
-                    )
+            elif msg_type == "sticker":
+                new_msg = LineMessage(
+                    line_account_id=line_account.id,
+                    user_id=user_id,
+                    message_type="sticker",
+                    sticker_id=event["message"]["stickerId"],
+                    package_id=event["message"]["packageId"],
+                    timestamp=datetime.utcnow()
+                )
 
-                else:
-                    # message ประเภทอื่นยังไม่รองรับ
-                    continue
+            else:
+                # message ประเภทอื่นยังไม่รองรับ
+                continue
+            
+            if new_msg:
+                db.session.add(new_msg)
+                db.session.commit()
+
+                content_for_socket = ""
+                if new_msg.message_type == 'text':
+                    content_for_socket = new_msg.message_text
+                elif new_msg.message_type == 'image':
+                    # สำหรับรูปภาพ ให้ใช้ message_url ที่เราบันทึกไว้
+                    content_for_socket = new_msg.message_url
+                elif new_msg.message_type == 'sticker':
+                    # สำหรับสติกเกอร์ ให้สร้าง URL เต็ม
+                    content_for_socket = f"https://stickershop.line-scdn.net/stickershop/v1/sticker/{new_msg.sticker_id}/ANDROID/sticker.png"
                 
-                if new_msg:
-                    db.session.add(new_msg)
-                    db.session.commit()
+                # --- 3. [แก้ไข] กระจายเสียง Event หลังจากสร้าง new_msg แล้ว ---
+                socketio.emit('new_message', {
+                    'id': new_msg.id,
+                    'sender_type': 'customer',
+                    'message_type': new_msg.message_type,
+                    'content': content_for_socket, # <--- ใช้ตัวแปรใหม่
+                    'full_datetime': new_msg.timestamp.strftime('%d %b - %H:%M'),
+                    'user_id': user_id,
+                    'oa_id': line_account.id
+                }, to=f"chat_{user_id}_{line_account.id}")
 
-                    content_for_socket = ""
-                    if new_msg.message_type == 'text':
-                        content_for_socket = new_msg.message_text
-                    elif new_msg.message_type == 'image':
-                        # สำหรับรูปภาพ ให้ใช้ message_url ที่เราบันทึกไว้
-                        content_for_socket = new_msg.message_url
-                    elif new_msg.message_type == 'sticker':
-                        # สำหรับสติกเกอร์ ให้สร้าง URL เต็ม
-                        content_for_socket = f"https://stickershop.line-scdn.net/stickershop/v1/sticker/{new_msg.sticker_id}/ANDROID/sticker.png"
-                    
-                    # --- 3. [แก้ไข] กระจายเสียง Event หลังจากสร้าง new_msg แล้ว ---
-                    socketio.emit('new_message', {
-                        'id': new_msg.id,
-                        'sender_type': 'customer',
-                        'message_type': new_msg.message_type,
-                        'content': content_for_socket, # <--- ใช้ตัวแปรใหม่
-                        'full_datetime': new_msg.timestamp.strftime('%d %b - %H:%M'),
-                        'user_id': user_id,
-                        'oa_id': line_account.id
-                    }, to=f"chat_{user_id}_{line_account.id}")
+                socketio.emit('update_conversation_list', {
+                    'user_id': user_id,
+                    'line_account_id': line_account.id,
+                    'display_name': line_user.nickname or line_user.display_name or user_id[:12],
+                    'oa_name': line_account.name,
+                    'last_message_prefix': 'ลูกค้า:',
+                    'last_message_content': new_msg.message_text if new_msg.message_type == 'text' else f"[{new_msg.message_type.capitalize()}]",
+                    'status': line_user.status,
+                    'unread_count': line_user.unread_count,
+                    'picture_url': line_user.picture_url
+                })
 
-                    socketio.emit('update_conversation_list', {
-                        'user_id': user_id,
-                        'line_account_id': line_account.id,
-                        'display_name': line_user.nickname or line_user.display_name or user_id[:12],
-                        'oa_name': line_account.name,
-                        'last_message_prefix': 'ลูกค้า:',
-                        'last_message_content': new_msg.message_text if new_msg.message_type == 'text' else f"[{new_msg.message_type.capitalize()}]",
-                        'status': line_user.status,
-                        'unread_count': line_user.unread_count,
-                        'picture_url': line_user.picture_url
-                    })
+                pass
+                
 
         # --- [แก้ไข] บันทึกทุกอย่างลง DB แค่ครั้งเดียวหลังจบ Loop ---
         

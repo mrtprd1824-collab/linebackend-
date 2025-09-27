@@ -137,3 +137,18 @@ function populateInlineQuickReply(resultsElement, replies) {
         resultsElement.appendChild(itemEl);
     });
 }
+
+function markMessageAsFailed(messageId, errorMessage) {
+    const messageElement = document.getElementById(`msg-${messageId}`);
+    if (!messageElement) {
+        console.error(`Could not find message element with ID: msg-${messageId} to mark as failed.`);
+        return;
+    }
+
+    const errorBadge = document.createElement('div');
+    errorBadge.className = 'message-error-badge';
+    errorBadge.textContent = '! ส่งไม่สำเร็จ';
+    errorBadge.title = errorMessage || 'ไม่สามารถส่งข้อความนี้ไปยัง LINE ได้';
+
+    messageElement.appendChild(errorBadge);
+}

@@ -1,8 +1,8 @@
-"""Initial database setup from models
+"""Initialize database with all final models
 
-Revision ID: b69a5ffe3a7b
+Revision ID: f369a764bd0a
 Revises: 
-Create Date: 2025-09-26 19:01:01.488767
+Create Date: 2025-09-27 09:35:42.449665
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'b69a5ffe3a7b'
+revision = 'f369a764bd0a'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -105,12 +105,14 @@ def upgrade():
     sa.Column('last_read_timestamp', sa.DateTime(), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.Column('last_seen_at', sa.DateTime(), nullable=True),
+    sa.Column('is_blocked', sa.Boolean(), nullable=False),
     sa.ForeignKeyConstraint(['line_account_id'], ['line_account.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('line_account_id', 'user_id', name='_line_account_user_uc')
     )
     with op.batch_alter_table('line_user', schema=None) as batch_op:
         batch_op.create_index(batch_op.f('ix_line_user_created_at'), ['created_at'], unique=False)
+        batch_op.create_index(batch_op.f('ix_line_user_is_blocked'), ['is_blocked'], unique=False)
         batch_op.create_index(batch_op.f('ix_line_user_last_seen_at'), ['last_seen_at'], unique=False)
         batch_op.create_index(batch_op.f('ix_line_user_line_account_id'), ['line_account_id'], unique=False)
         batch_op.create_index(batch_op.f('ix_line_user_phone'), ['phone'], unique=False)
@@ -151,6 +153,7 @@ def downgrade():
         batch_op.drop_index(batch_op.f('ix_line_user_phone'))
         batch_op.drop_index(batch_op.f('ix_line_user_line_account_id'))
         batch_op.drop_index(batch_op.f('ix_line_user_last_seen_at'))
+        batch_op.drop_index(batch_op.f('ix_line_user_is_blocked'))
         batch_op.drop_index(batch_op.f('ix_line_user_created_at'))
 
     op.drop_table('line_user')

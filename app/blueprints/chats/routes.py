@@ -301,7 +301,8 @@ def get_messages_for_user(user_id):
             "nickname": line_user.nickname or '',
             "phone": line_user.phone or '',
             "note": line_user.note or '',
-            "status": line_user.status
+            "status": line_user.status,
+            "is_blocked": line_user.is_blocked
         },
         "account": {
             "id": account.id,
@@ -326,37 +327,35 @@ def send_message():
         return jsonify({"status": "error", "message": "Missing data"}), 400
 
     account = LineAccount.query.get(oa_id)
-    if not account:
-        return jsonify({"status": "error", "message": "OA not found"}), 404
+    line_user = LineUser.query.filter_by(user_id=user_id, line_account_id=oa_id).first()
 
-    # --- ส่วนที่ปรับปรุง ---
+    if not account or not line_user:
+        return jsonify({"status": "error", "message": "OA or User not found"}), 404
+
     line_sent_successfully = True
-    line_api_error_message = None # สร้างตัวแปรไว้เก็บ error จาก LINE
+    line_api_error_message = None
 
-    try:
-        line_bot_api = LineBotApi(account.channel_access_token)
-
-        message_to_send = TextSendMessage(text=message_text)
-        line_bot_api.push_message(user_id, message_to_send)
-
-        today_str = (datetime.utcnow()).strftime('%Y%m%d') # ใช้วันที่ของ UTC
-        delivery_stats = line_bot_api.get_push_message_delivery_statistics(date=today_str)
-
-        if delivery_stats.success is not None and delivery_stats.success <= 0:
+    if line_user.is_blocked:
+        line_sent_successfully = False
+        line_api_error_message = "Message not sent: This user has blocked the OA."
+        print(f">>> SEND BLOCKED: Attempted to send message to a blocked user ({user_id})")
+    else:
+    
+        try:
+            line_bot_api = LineBotApi(account.channel_access_token)
+            message_to_send = TextSendMessage(text=message_text)
+            line_bot_api.push_message(user_id, message_to_send)
+            
+        except LineBotApiError as e:
             line_sent_successfully = False
-            line_api_error_message = "Message sent but not delivered. User might have blocked the OA."
-    
-    except LineBotApiError as e:
-        line_sent_successfully = False
-        line_api_error_message = f"LINE API Error: {e.error.message}"
-        print(line_api_error_message)
-    except Exception as e:
-        line_sent_successfully = False
-        line_api_error_message = f"An unexpected error occurred: {str(e)}"
-        print(line_api_error_message)
+            line_api_error_message = f"LINE API Error: {e.error.message}"
+            print(f"LINE API Error: {line_api_error_message}")
+        except Exception as e:
+            line_sent_successfully = False
+            line_api_error_message = f"An unexpected error occurred: {str(e)}"
+            print(f"An unexpected error occurred: {line_api_error_message}")
 
-    # บันทึกข้อความที่ส่งลงฐานข้อมูลของเรา (ส่วนนี้ทำงานไม่ว่า LINE จะส่งสำเร็จหรือไม่)
-    
+    # 2. บันทึกข้อความและ "สถานะ" ที่แท้จริงลงฐานข้อมูล
     new_message = LineMessage(
         user_id=user_id,
         line_account_id=oa_id,
@@ -410,7 +409,7 @@ def send_message():
         "content": new_message.message_text,
         "full_datetime": (new_message.timestamp + timedelta(hours=7)).strftime('%d %b - %H:%M'),
         "admin_email": current_user.email,
-        "oa_name": new_message.line_account.name,
+        "oa_name": account.name,
         "sender_type": 'admin'
     })
 
