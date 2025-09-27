@@ -16,13 +16,13 @@
                 <th>Status</th>
                 <th>OA Name</th>
                 <th>Last Check</th>
-                <th>Details</th>
+                <th>Details</th> <!-- *** รวมเป็นคอลัมน์เดียว *** -->
             </tr>
         </thead>
         <tbody id="oa-table-body">
             {% for acc in accounts %}
             <tr id="oa-row-{{ acc.id }}">
-                <td>
+                <td id="status-cell-{{ acc.id }}">
                     {% if acc.is_active %}
                     <span class="badge bg-success">Active</span>
                     {% else %}
@@ -30,15 +30,15 @@
                     {% endif %}
                 </td>
                 <td>{{ acc.name }}</td>
-                <td>
+                <td id="last-check-{{ acc.id }}">
                     {% if acc.last_check_timestamp %}
-                    {# บวกเวลาเพิ่ม 7 ชั่วโมง แล้วจัดรูปแบบการแสดงผล #}
                     {{ (acc.last_check_timestamp + timedelta(hours=7)).strftime('%Y-%m-%d %H:%M:%S') }}
                     {% else %}
                     Never
                     {% endif %}
                 </td>
-                <td class="small text-muted">{{ acc.last_check_status_message }}</td>
+                <!-- *** แสดงผลจาก last_check_status_message ที่เดียว *** -->
+                <td id="details-cell-{{ acc.id }}" class="small text-muted">{{ acc.last_check_status_message }}</td>
             </tr>
             {% endfor %}
         </tbody>
@@ -53,34 +53,42 @@
         const btn = this;
         const statusText = document.getElementById('status-text');
 
-        // Disable button and show loading text
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Checking...';
-        statusText.textContent = 'Checking in progress, please wait...';
+        statusText.textContent = 'Checking in progress, this may take a moment...';
         statusText.className = 'text-primary';
 
+        // ใช้ fetch เพื่อเรียก API Endpoint
         fetch("{{ url_for('admin.run_oa_check_api') }}", {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             }
         })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    // ถ้ามี Error ให้ไปที่ .catch
+                    return response.json().then(err => { throw new Error(err.message || 'Server Error') });
+                }
+                return response.json();
+            })
             .then(data => {
-                console.log('Check completed:', data);
-                statusText.textContent = 'Check completed! Reloading page to see latest status...';
-                statusText.className = 'text-success';
+                if (data.status === 'completed') {
+                    statusText.textContent = 'Check completed! Reloading page to see the latest status...';
+                    statusText.className = 'text-success';
 
-                // Reload the page to show the updated status from the database
-                setTimeout(function () {
-                    window.location.reload();
-                }, 1500); // Wait 1.5 seconds before reloading
+                    // เมื่อทำงานเสร็จ ให้ Reload หน้าเว็บ
+                    setTimeout(function () {
+                        window.location.reload();
+                    }, 1000); // รอ 1 วินาทีก่อน Reload
+                }
             })
             .catch(error => {
                 console.error('Error:', error);
-                statusText.textContent = 'An error occurred during the check.';
+                statusText.textContent = 'An error occurred during the check: ' + error.message;
                 statusText.className = 'text-danger';
-                // Re-enable button on error
+
+                // คืนค่าปุ่มให้เป็นปกติเมื่อเกิด Error
                 btn.disabled = false;
                 btn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Run Check on All OAs';
             });
