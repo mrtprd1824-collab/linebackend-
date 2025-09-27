@@ -1,7 +1,7 @@
 """Add is_active to LineAccount with default
 
 Revision ID: 38d75f94b5a7
-Revises: 
+Revises: f369a764bd0a
 Create Date: 2025-09-27 11:40:50.965105
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '38d75f94b5a7'
-down_revision = None
+down_revision = 'f369a764bd0a'
 branch_labels = None
 depends_on = None
 
