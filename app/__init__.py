@@ -47,14 +47,16 @@ def create_app():
     from .blueprints.chats import bp as chats_bp
     from .blueprints.quick_replies.routes import bp as quick_replies_bp
     from .blueprints.oa_groups.routes import bp as oa_groups_bp
+    from .blueprints.Cron_Job.routes import cron_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(line_admin_bp)
     app.register_blueprint(line_webhook_bp)
-    app.register_blueprint(chats_bp)  # ถ้า bp ตั้ง url_prefix ในไฟล์อยู่แล้ว ไม่ต้องใส่ซ้ำตรงนี้
+    app.register_blueprint(chats_bp) 
     app.register_blueprint(quick_replies_bp)
     app.register_blueprint(oa_groups_bp)
+    app.register_blueprint(cron_bp)
 
     @app.get("/_env_check")
     def _env_check():
