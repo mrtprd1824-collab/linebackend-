@@ -715,7 +715,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const text = e.target.value;
         if (text.length > 0) {
             const searchTerm = text.toUpperCase();
-            const filteredReplies = availableQuickReplies.filter(r => r.shortcut.toUpperCase().startsWith(searchTerm));
+            const filteredReplies = availableQuickReplies.filter(r => r.shortcut.toUpperCase().includes(searchTerm));
             if (filteredReplies.length > 0) {
                 populateInlineQuickReply(inlineQrResults, filteredReplies);
                 inlineQrResults.style.display = 'block';
