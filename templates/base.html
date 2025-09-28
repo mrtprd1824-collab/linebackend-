@@ -71,6 +71,12 @@
                                 <i class="bi bi-person-fill me-2"></i>Profile
                             </a>
                         </li>
+                        
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin.oa_health_check_page') }}">
+                                <i class="bi bi-heart-pulse-fill me-2"></i>OA Health Check
+                            </a>
+                        </li>
 
                         <li>
                             <hr class="dropdown-divider">
@@ -78,11 +84,6 @@
 
                         <!-- Admin Menu -->
                         {% if current_user.is_admin %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('admin.oa_health_check_page') }}">
-                                <i class="bi bi-heart-pulse-fill me-2"></i>OA Health Check
-                            </a>
-                        </li>
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('line_admin.line_admin_index') }}">
                                 <i class="bi bi-link-45deg me-2"></i>Line OA
