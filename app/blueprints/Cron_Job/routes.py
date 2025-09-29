@@ -3,7 +3,7 @@
 import os
 from flask import Blueprint, request, jsonify
 from app.models import LineAccount # <-- Import Model ของคุณ
-from app.services.oa_checker import check_single_oa_status # <-- Import ฟังก์ชันที่คุณมี
+from app.services.oa_checker import check_single_oa_status , run_full_health_check
 from app.extensions import db
 
 # สร้าง Blueprint สำหรับ cron jobs
@@ -32,7 +32,7 @@ def trigger_oa_health_check():
 
         # 3. วนลูปเพื่อตรวจสอบสถานะทีละบัญชี
         for account in accounts_to_check:
-            check_single_oa_status(account) # <-- เรียกใช้ฟังก์ชันที่คุณมี
+            run_full_health_check(account) # <-- เรียกใช้ฟังก์ชันที่คุณมี
             # ฟังก์ชันนี้จะอัปเดตข้อมูลใน object แต่ยังไม่ save ลง db
         
         # 4. เมื่อตรวจสอบครบทั้งหมดแล้ว ให้ commit การเปลี่ยนแปลงทั้งหมดลง DB ในครั้งเดียว

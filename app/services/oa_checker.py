@@ -77,3 +77,40 @@ def check_single_oa_webhook(account):
 
     except requests.exceptions.RequestException as e:
         return False, f"Network Error: {type(e).__name__}"
+    
+    
+    
+def run_full_health_check(account):
+    """
+    ฟังก์ชันหลักสำหรับเรียกตรวจสอบ OA ทั้งสถานะ Token และ Webhook
+    และอัปเดตข้อมูลลงใน object `account` โดยตรง
+    ฟังก์ชันนี้จะไม่ commit() เอง แต่จะรอให้ caller เป็นคน commit
+    """
+    # 1. เรียกตรวจสอบสถานะ Token และ Webhook
+    token_ok, token_msg = check_single_oa_status(account)
+    webhook_ok, webhook_msg = check_single_oa_webhook(account)
+
+    # 2. ประเมินผลลัพธ์โดยรวม
+    # สถานะโดยรวมจะ Active (is_active = True) ก็ต่อเมื่อทั้งสองอย่างทำงานถูกต้อง (OK)
+    account.is_active = token_ok and webhook_ok
+
+    # 3. สร้างข้อความสรุปผล (Status Message)
+    # เพื่อให้แสดงผลในหน้าเว็บได้ง่าย
+    status_parts = []
+    if token_ok:
+        status_parts.append("Token: OK")
+    else:
+        status_parts.append(f"Token: {token_msg}") # แสดงข้อความ Error ของ Token
+
+    if webhook_ok:
+        status_parts.append("Webhook: OK")
+    else:
+        status_parts.append(f"Webhook: {webhook_msg}") # แสดงข้อความ Error ของ Webhook
+
+    account.last_check_status_message = ", ".join(status_parts)
+
+    # 4. อัปเดตเวลาที่ตรวจสอบล่าสุด
+    account.last_check_timestamp = datetime.now(timezone.utc)
+
+    print(f"  -> Health check for '{account.name}' completed. Overall Status: {'Active' if account.is_active else 'Inactive'}")
+    print(f"     Details: {account.last_check_status_message}")    
