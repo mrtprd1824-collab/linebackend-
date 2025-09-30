@@ -1,0 +1,20 @@
+{
+  "name": "Line Backend",
+  "short_name": "Linebackend",
+  "icons": [
+    {
+      "src": "/static/images/icon-192x192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/static/images/icon-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/chats/",
+  "display": "standalone",
+  "background_color": "#2c2f33",
+  "theme_color": "#1EE494"
+}
