@@ -196,29 +196,33 @@ body {
 
 /* --- CSS สำหรับสถานะแชท --- */
 .list-group-item-action.status-unread {
-    background-color: #e7f3ff;
+    background-color: #5facf8;
     /* สีฟ้าอ่อน */
 }
 
 .list-group-item-action.status-deposit {
-    background-color: #d1e7dd;
+    background-color: #6ff87b;
     /* สีเขียวอ่อน */
 }
 
 .list-group-item-action.status-withdraw {
-    background-color: #fff3cd;
+    background-color: #f8a240;
     /* สีส้มอ่อน */
 }
 
 .list-group-item-action.status-issue {
-    background-color: #f8d7da;
+    background-color: #f5727d;
     /* สีแดงอ่อน */
 }
 
 .list-group-item-action.status-closed {
-    background-color: #f8f9fa;
-    /* สีเทาอ่อน (เหมือนอ่านแล้ว) */
-    opacity: 0.7;
+    background-color: #f8f7f7;
+    /* สีเทาอ่อน (ปิดเคส) */
+    opacity: 0.5;
+}
+.list-group-item-action.status-read {
+    background-color: #5facf8;
+    /* สีเทาอ่อน (ปิดเคส) */
 }
 
 /* --- [เพิ่ม] Style สำหรับจัดระเบียบหน้าต่างสติ๊กเกอร์ --- */
@@ -337,4 +341,8 @@ body {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
+}
+
+.unread-timer.timer-frozen {
+    color: #6c757d !important; /* สีเทา */
 }

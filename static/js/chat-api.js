@@ -1,7 +1,13 @@
 // Function to fetch initial chat data for a user
-async function fetchChatData(userId, oaId) {
-    const response = await fetch(`/chats/api/messages/${userId}?oa=${oaId}`);
-    if (!response.ok) throw new Error('Network response was not ok');
+async function fetchChatData(userId, oaId, frozenTime = null) {
+    let url = `/chats/api/messages/${userId}?oa=${oaId}`; // <-- ต้องมี /chats ข้างหน้า
+    if (frozenTime) {
+        url += `&frozen_time=${encodeURIComponent(frozenTime)}`;
+    }
+    const response = await fetch(url);
+    if (!response.ok) {
+        throw new Error(`Failed to fetch chat data. Status: ${response.status}`);
+    }
     return await response.json();
 }
 

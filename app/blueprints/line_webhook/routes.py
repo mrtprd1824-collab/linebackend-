@@ -76,7 +76,14 @@ def callback(webhook_path):
 
                 # สร้าง user ถ้ายังไม่มี (กรณีที่ได้รับข้อความครั้งแรก แต่ไม่มี follow event)
                 if not line_user:
+
+                    print(">>> DEBUG: Creating a NEW user entry.")
+
                     line_user = LineUser(line_account_id=line_account.id, user_id=user_id)
+                    line_user.status = 'unread' # <-- กำหนดสถานะเริ่มต้นให้เป็น unread
+
+                    print(f">>> DEBUG: New user status set to: '{line_user.status}'")
+
                     db.session.add(line_user)
                     try:
                         profile = line_bot_api.get_profile(user_id)
@@ -84,6 +91,11 @@ def callback(webhook_path):
                         line_user.picture_url = profile.picture_url
                     except Exception as e:
                         print(f"Could not get profile for {user_id}: {e}")
+
+                else:
+                    # --- [DEBUG] เพิ่มบรรทัดนี้เข้าไปในส่วน else ---
+                    print(f">>> DEBUG: User already exists. Current status: '{line_user.status}'")
+
 
                 # อัปเดตสถานะเมื่อได้รับข้อความ
                 if line_user.status == 'closed':
@@ -161,9 +173,9 @@ def callback(webhook_path):
                     'full_datetime': new_msg.timestamp.strftime('%d %b - %H:%M'),
                     'user_id': user_id,
                     'oa_id': line_account.id
-                }, to=f"chat_{user_id}_{line_account.id}")
+                })
 
-                socketio.emit('update_conversation_list', {
+                socketio.emit('resort_sidebar', {
                     'user_id': user_id,
                     'line_account_id': line_account.id,
                     'display_name': line_user.nickname or line_user.display_name or user_id[:12],

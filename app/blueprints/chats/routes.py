@@ -158,10 +158,19 @@ def index():
         for msg, user in users_with_messages:
             unread_count = unread_counts_map.get((user.user_id, user.line_account_id), 0)
             
+            # --- [เพิ่มส่วนแก้ไข Timezone] ---
+            # 1. ทำให้ Python รู้ว่าเวลาที่ดึงมาเป็น UTC
+            aware_timestamp = msg.timestamp.replace(tzinfo=timezone.utc)
+            # 2. แปลงเป็นตัวเลข Unix Timestamp ที่ถูกต้อง
+            correct_timestamp = aware_timestamp.timestamp()
+            # --------------------------------
+
             conversations.append({
                 "message": msg,
                 "user": user,
                 "unread_count": unread_count,
+                # 3. เพิ่ม key ใหม่เข้าไปในข้อมูล
+                "last_unread_timestamp": correct_timestamp 
             })
         
         return render_template(
@@ -222,6 +231,8 @@ def show(user_id):
 @login_required
 def get_messages_for_user(user_id):
     oa_id = request.args.get("oa", type=int)
+    frozen_time = request.args.get('frozen_time', None)
+
     if not oa_id:
         return jsonify({"error": "Missing OA ID"}), 400
     account = LineAccount.query.get(oa_id)
@@ -238,23 +249,15 @@ def get_messages_for_user(user_id):
     db.session.commit()
 
     if status_was_changed:
-        latest_message = LineMessage.query.filter_by(
-            user_id=line_user.user_id, line_account_id=line_user.line_account_id
-        ).order_by(LineMessage.timestamp.desc()).first()
-
+        latest_message = LineMessage.query.filter_by(user_id=line_user.user_id, line_account_id=line_user.line_account_id).order_by(LineMessage.timestamp.desc()).first()
         line_account = LineAccount.query.get(line_user.line_account_id)
         oa_name = line_account.name if line_account else "Unknown OA"
-
-        last_message_prefix = ""
+        last_message_prefix = "คุณ:" if latest_message and latest_message.is_outgoing else "ลูกค้า:"
         last_message_content = "[No messages yet]"
         if latest_message:
-            last_message_prefix = "คุณ:" if latest_message.is_outgoing else "ลูกค้า:"
-            if latest_message.message_type == 'text':
-                last_message_content = truncate_text(latest_message.message_text)
-            elif latest_message.message_type == 'event':
-                last_message_content = latest_message.message_text
-            else:
-                last_message_content = f"[{latest_message.message_type.capitalize()}]"
+            if latest_message.message_type == 'text': last_message_content = truncate_text(latest_message.message_text)
+            elif latest_message.message_type == 'event': last_message_content = latest_message.message_text
+            else: last_message_content = f"[{latest_message.message_type.capitalize()}]"
 
         conversation_data = {
             'user_id': line_user.user_id,
@@ -265,40 +268,19 @@ def get_messages_for_user(user_id):
             'last_message_content': last_message_content,
             'status': line_user.status,
             'picture_url': line_user.picture_url,
-            'line_sent_successfully': latest_message.line_sent_successfully if latest_message else True,
-            'line_error_message': latest_message.line_error_message if latest_message else None
+            'frozen_time': frozen_time
         }
-        socketio.emit('update_conversation_list', conversation_data)
+        socketio.emit('resort_sidebar', conversation_data)
     
     total_messages = LineMessage.query.filter_by(user_id=user_id, line_account_id=oa_id).count()
-    messages_query = LineMessage.query.filter_by(
-        user_id=user_id,
-        line_account_id=oa_id
-    ).order_by(LineMessage.timestamp.desc()).limit(10).all()
+    messages_query = LineMessage.query.filter_by(user_id=user_id, line_account_id=oa_id).order_by(LineMessage.timestamp.desc()).limit(10).all()
     messages_query.reverse()
-    
     processed_messages = [format_message_for_api(m) for m in messages_query]
-
     response_data = {
-        "user": {
-            "db_id": line_user.id,
-            "user_id": line_user.user_id,
-            "display_name": line_user.display_name,
-            "nickname": line_user.nickname or '',
-            "phone": line_user.phone or '',
-            "note": line_user.note or '',
-            "status": line_user.status,
-            "is_blocked": line_user.is_blocked
-        },
-        "account": {
-            "id": account.id,
-            "name": account.name,
-            "manager_url": account.manager_url
-        },
-        "messages": processed_messages,
-        "total_messages": total_messages
+        "user": {"db_id": line_user.id, "display_name": line_user.display_name, "nickname": line_user.nickname or '', "phone": line_user.phone or '', "note": line_user.note or '', "status": line_user.status, "is_blocked": line_user.is_blocked},
+        "account": {"id": account.id, "name": account.name, "manager_url": account.manager_url},
+        "messages": processed_messages, "total_messages": total_messages
     }
-
     return jsonify(response_data)
 
 @bp.route("/api/send_message", methods=["POST"])
@@ -722,7 +704,7 @@ def update_conversation_status(user_db_id):
         'user_id': user.user_id, 'oa_id': user.line_account_id,
     })
     socketio.emit('new_message', message_data_for_socket, to=room_name)
-    socketio.emit('resort_sidebar', {})
+    socketio.emit('resort_sidebar', conversation_data)
     return jsonify({"status": "success", "new_status": new_status})
 
 @bp.post("/upload")
