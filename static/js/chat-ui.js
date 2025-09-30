@@ -128,7 +128,8 @@ function populateQuickReplyList(listElement, replies) {
 // Function to populate the inline quick reply suggestions
 function populateInlineQuickReply(resultsElement, replies) {
     resultsElement.innerHTML = '';
-    replies.slice(0, 5).forEach(reply => {
+    // Use all replies directly without slicing
+    replies.forEach(reply => {
         const itemEl = document.createElement('a');
         itemEl.href = '#';
         itemEl.classList.add('list-group-item', 'list-group-item-action', 'inline-qr-item');
