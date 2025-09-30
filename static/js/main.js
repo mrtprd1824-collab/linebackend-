@@ -238,6 +238,7 @@ document.addEventListener('DOMContentLoaded', function () {
             isLoadingMore = false;
             currentFullNote = data.user.note || '';
 
+
             // (โค้ดส่วน Render ทั้งหมดยาวๆ เหมือนเดิม)
             const chatHeader = document.getElementById('chat-header');
             chatHeader.innerHTML = `<form id="user-info-form" class="p-2 border-bottom"><div class="row gx-2 align-items-center mb-2"><div class="col"><input type="text" id="user-nickname" class="form-control form-control-sm" placeholder="Nickname" value="${data.user.nickname || ''}"></div><div class="col"><input type="text" id="user-phone" class="form-control form-control-sm" placeholder="Phone" value="${data.user.phone || ''}"></div><div class="col-auto"><button type="submit" class="btn btn-sm btn-success">Save</button> <a href="/chats/download/${userId}?oa=${oaId}" target="_blank" class="btn btn-sm btn-outline-secondary" title="Download Chat History"><i class="bi bi-download"></i></a></div></div><div class="row gx-2 align-items-center"><div class="col"><button type="button" id="edit-note-btn" class="btn btn-outline-secondary btn-sm w-100 text-start"><i class="bi bi-pencil-square"></i> <span id="note-preview" class="text-truncate d-inline-block" style="max-width: 80%;">${data.user.note ? data.user.note.replace(/\n/g, ' ') : 'Add a note...'}</span></button></div><div class="col-auto"><div class="btn-group btn-group-sm" role="group"><button type="button" class="btn btn-outline-success status-btn" data-status="deposit">ฝาก</button><button type="button" class="btn btn-outline-warning status-btn" data-status="withdraw">ถอน</button><button type="button" class="btn btn-outline-danger status-btn" data-status="issue">ติดปัญหา</button><button type="button" class="btn btn-outline-dark status-btn" data-status="closed">ปิดเคส</button></div></div></div>${data.account.manager_url ? `<a href="${data.account.manager_url}" target="_blank" rel="noopener noreferrer" class="text-muted d-block mt-2 text-decoration-none" title="Open in LINE Official Account Manager">@${data.account.name} <i class="bi bi-box-arrow-up-right small"></i></a>` : `<small class="text-muted d-block mt-2">@${data.account.name}</small>`}</form>`;
@@ -251,6 +252,19 @@ document.addEventListener('DOMContentLoaded', function () {
             if (currentRoom && currentRoom !== newRoomName) { socket.emit('leave', { room: currentRoom }); }
             socket.emit('join', { room: newRoomName });
             currentRoom = newRoomName;
+
+            const blockedAlert = document.getElementById('blocked-user-alert');
+            const replyForm = document.getElementById('reply-form'); // <--- เปลี่ยนมาใช้ ID ของฟอร์มโดยตรง
+
+            if (data.user.is_blocked) {
+                // ถ้าบล็อก: แสดงแถบแจ้งเตือน และซ่อนฟอร์มพิมพ์
+                blockedAlert.classList.remove('d-none');
+                replyForm.classList.add('d-none');
+            } else {
+                // ถ้าไม่บล็อก: ซ่อนแถบแจ้งเตือน และแสดงฟอร์มพิมพ์
+                blockedAlert.classList.add('d-none');
+                replyForm.classList.remove('d-none');
+            }
 
         } catch (error) {
             console.error('Failed to load chat:', error);
