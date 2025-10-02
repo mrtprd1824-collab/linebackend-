@@ -3,346 +3,671 @@
 *,
 *::before,
 *::after {
-    box-sizing: border-box;
+  box-sizing: border-box;
 }
 
 /* [แก้ไข] ทำให้ body เป็น flex container เพื่อจัดกลาง */
 body {
-    margin: 0;
-    padding: 0;
-    padding-top: 56px;
-    /* [เพิ่ม] เว้นที่ว่างด้านบนสำหรับ Navbar ที่สูง 56px */
-    background-color: #f0f2f5;
-    /* ไม่ต้องมี overflow: hidden แล้ว */
+  margin: 0;
+  padding: 0;
+  padding-top: 56px;
+  /* [เพิ่ม] เว้นที่ว่างด้านบนสำหรับ Navbar ที่สูง 56px */
+  background-color: #f0f2f5;
+  /* ไม่ต้องมี overflow: hidden แล้ว */
 }
 
 /* [แก้ไข] ลบ transform และ position ออก */
 .chat-container {
-    display: flex;
-    height: calc(100vh - 56px);
-    /* [แก้ไข] ให้ความสูงพอดีกับพื้นที่ที่เหลือ */
-    width: 100vw;
+  display: flex;
+  height: calc(100vh - 56px);
+  /* [แก้ไข] ให้ความสูงพอดีกับพื้นที่ที่เหลือ */
+  width: 100vw;
 }
 
 /* --- ส่วนที่เหลือปรับปรุงเล็กน้อย แต่โครงสร้างเหมือนเดิม --- */
 
 .user-list-panel {
-    width: 30%;
-    min-width: 280px;
-    border-right: 1px solid #dee2e6;
-    display: flex;
-    flex-direction: column;
+  width: 30%;
+  min-width: 280px;
+  border-right: 1px solid #dee2e6;
+  display: flex;
+  flex-direction: column;
 }
 
 .user-list-header {
-    padding: 1rem;
-    border-bottom: 1px solid #dee2e6;
+  padding: 1rem;
+  border-bottom: 1px solid #dee2e6;
 }
 
 .user-list-items {
-    overflow-y: auto;
-    flex-grow: 1;
+  overflow-y: auto;
+  flex-grow: 1;
 }
 
 .chat-window-panel {
-    width: 70%;
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
+  width: 70%;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .chat-placeholder {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    height: 100%;
-    color: #6c757d;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  color: #6c757d;
 }
 
 #chat-area {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .chat-header {
-    padding: 1rem;
-    border-bottom: 1px solid #dee2e6;
-    background-color: #f8f9fa;
+  padding: 1rem;
+  border-bottom: 1px solid #dee2e6;
+  background-color: #839fce;
 }
 
 .chat-messages {
-    flex-grow: 1;
-    overflow-y: auto;
-    padding: 1rem;
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: 1rem;
 }
 
 .chat-input {
-    padding: 1rem;
-    border-top: 1px solid #dee2e6;
-    background-color: #f8f9fa;
+  padding: 1rem;
+  border-top: 1px solid #dee2e6;
+  background-color: #f8f9fa;
 }
 
 .chat-input form {
-    display: flex;
-    position: relative;
-    /* สำหรับ inline quick reply */
+  display: flex;
+  position: relative;
+  /* สำหรับ inline quick reply */
 }
 
 .message {
-    display: flex;
-    flex-direction: column;
-    margin-bottom: 15px;
-    max-width: 75%;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 15px;
+  max-width: 75%;
 }
 
 .customer-message {
-    align-self: flex-start;
-    align-items: flex-start;
+  align-self: flex-start;
+  align-items: flex-start;
 }
 
 .admin-message {
-    align-self: flex-end;
-    align-items: flex-end;
-    margin-left: auto;
-    /* [เพิ่ม] บรรทัดนี้คือพระเอกครับ */
+  align-self: flex-end;
+  align-items: flex-end;
+  margin-left: auto;
+  /* [เพิ่ม] บรรทัดนี้คือพระเอกครับ */
 }
 
 .message-content {
-    padding: 10px 15px;
-    word-wrap: break-word;
-    white-space: pre-wrap;
+  padding: 10px 15px;
+  word-wrap: break-word;
+  white-space: pre-wrap;
 }
 
 .customer-message .message-content {
-    background-color: #e9ecef;
-    color: #212529;
-    border-radius: 18px 18px 18px 5px;
+  background-color: #e9ecef;
+  color: #212529;
+  border-radius: 18px 18px 18px 5px;
 }
 
 .admin-message .message-content {
-    background-color: #0d6efd;
-    color: white;
-    border-radius: 18px 18px 5px 18px;
+  background-color: #0d6efd;
+  color: white;
+  border-radius: 18px 18px 5px 18px;
 }
 
 .message-meta {
-    font-size: 12px;
-    color: #6c757d;
-    margin-top: 5px;
-    padding: 0 5px;
+  font-size: 12px;
+  color: #6c757d;
+  margin-top: 5px;
+  padding: 0 5px;
 }
 
 .sticker-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-    gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 10px;
 }
 
 .sticker-item {
-    cursor: pointer;
-    transition: transform 0.1s ease-in-out;
+  cursor: pointer;
+  transition: transform 0.1s ease-in-out;
 }
 
 .sticker-item:hover {
-    transform: scale(1.1);
+  transform: scale(1.1);
 }
 
 #inline-qr-results {
-    display: none;
-    position: absolute;
-    bottom: 100%;
-    left: 0;
-    right: 0;
-    z-index: 1000;
-    margin-bottom: 5px;
-    max-height: 250px;
-    overflow-y: auto;
-    border-radius: 0.375rem;
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-    background-color: white;
+  display: none;
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  margin-bottom: 5px;
+  max-height: 250px;
+  overflow-y: auto;
+  border-radius: 0.375rem;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  background-color: white;
 }
 
 .event-message {
-    width: 100%;
-    text-align: center;
-    margin: 10px 0;
-    font-size: 0.8rem;
-    color: #6c757d;
+  width: 100%;
+  text-align: center;
+  margin: 10px 0;
+  font-size: 0.8rem;
+  color: #6c757d;
 }
 
 .event-message .message-content {
-    background-color: #fff3cd;
-    border: 1px solid #ffe69c;
-    display: inline-block;
-    padding: 4px 10px;
-    border-radius: 12px;
+  background-color: #fff3cd;
+  border: 1px solid #ffe69c;
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
 }
 
 .event-message.event-closed .message-content {
-    background-color: #f8d7da;
-    /* สีแดงอ่อน (danger ของ Bootstrap) */
-    border-color: #f5c2c7;
-    color: #58151c;
-    /* สีตัวหนังสือเข้มขึ้นเล็กน้อย */
+  background-color: #f8d7da;
+  /* สีแดงอ่อน (danger ของ Bootstrap) */
+  border-color: #f5c2c7;
+  color: #58151c;
+  /* สีตัวหนังสือเข้มขึ้นเล็กน้อย */
 }
 
 .event-timestamp {
-    font-size: 0.75rem;
-    color: #6c757d;
-    margin-top: 2px;
+  font-size: 0.75rem;
+  color: #6c757d;
+  margin-top: 2px;
 }
 
 /* --- CSS สำหรับสถานะแชท --- */
 .list-group-item-action.status-unread {
-    background-color: #5facf8;
-    /* สีฟ้าอ่อน */
+  background-color: #5facf8;
+  /* สีฟ้าอ่อน */
 }
 
 .list-group-item-action.status-deposit {
-    background-color: #6ff87b;
-    /* สีเขียวอ่อน */
+  background-color: #6ff87b;
+  /* สีเขียวอ่อน */
 }
 
 .list-group-item-action.status-withdraw {
-    background-color: #f8a240;
-    /* สีส้มอ่อน */
+  background-color: #f8a240;
+  /* สีส้มอ่อน */
 }
 
 .list-group-item-action.status-issue {
-    background-color: #f5727d;
-    /* สีแดงอ่อน */
+  background-color: #f5727d;
+  /* สีแดงอ่อน */
 }
 
 .list-group-item-action.status-closed {
-    background-color: #f8f7f7;
-    /* สีเทาอ่อน (ปิดเคส) */
-    opacity: 0.5;
+  background-color: #f8f7f7;
+  /* สีเทาอ่อน (ปิดเคส) */
+  opacity: 0.5;
 }
 .list-group-item-action.status-read {
-    background-color: #5facf8;
-    /* สีเทาอ่อน (ปิดเคส) */
+  background-color: #5facf8;
+  /* สีเทาอ่อน (ปิดเคส) */
 }
 
 /* --- [เพิ่ม] Style สำหรับจัดระเบียบหน้าต่างสติ๊กเกอร์ --- */
 
 .sticker-grid {
-    display: grid;
-    /* * คำสั่งนี้จะสร้างคอลัมน์อัตโนมัติให้พอดีกับความกว้าง 
+  display: grid;
+  /* * คำสั่งนี้จะสร้างคอลัมน์อัตโนมัติให้พอดีกับความกว้าง 
      * โดยแต่ละคอลัมน์จะมีความกว้างอย่างน้อย 90px
      */
-    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
-    gap: 15px;
-    /* เพิ่มระยะห่างระหว่างสติ๊กเกอร์ */
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 15px;
+  /* เพิ่มระยะห่างระหว่างสติ๊กเกอร์ */
 }
 
 .sticker-item {
-    cursor: pointer;
-    width: 100%;
-    /* ทำให้รูปภาพพอดีกับขนาดคอลัมน์ */
-    transition: transform 0.1s ease-in-out;
+  cursor: pointer;
+  width: 100%;
+  /* ทำให้รูปภาพพอดีกับขนาดคอลัมน์ */
+  transition: transform 0.1s ease-in-out;
 }
 
 /* เพิ่ม Effect ตอนเอาเมาส์ไปชี้ */
 .sticker-item:hover {
-    transform: scale(1.15);
-    z-index: 10;
+  transform: scale(1.15);
+  z-index: 10;
 }
 
 /* --- [เพิ่ม] Styles for Chat Images and Stickers --- */
 
 .chat-image {
-    max-width: 100%; /* ทำให้รูปภาพไม่ล้นกรอบข้อความ */
-    height: auto;     /* รักษาสัดส่วนของรูปภาพ */
-    border-radius: 10px; /* ทำให้มุมของรูปภาพมนเล็กน้อย */
-    cursor: pointer;     /* ทำให้เมาส์เป็นรูปมือเมื่อชี้ */
+  max-width: 100%; /* ทำให้รูปภาพไม่ล้นกรอบข้อความ */
+  height: auto; /* รักษาสัดส่วนของรูปภาพ */
+  border-radius: 10px; /* ทำให้มุมของรูปภาพมนเล็กน้อย */
+  cursor: pointer; /* ทำให้เมาส์เป็นรูปมือเมื่อชี้ */
 }
 
 .chat-sticker {
-    /* กำหนดขนาดที่เหมาะสมสำหรับสติกเกอร์ */
-    width: 120px;
-    height: 120px;
+  /* กำหนดขนาดที่เหมาะสมสำหรับสติกเกอร์ */
+  width: 120px;
+  height: 120px;
 }
 
 /* ทำให้กรอบข้อความของรูปภาพไม่มี padding เพิ่มเติม */
 .message-content img {
-    display: block; /* แก้ปัญหาช่องว่างใต้รูป */
+  display: block; /* แก้ปัญหาช่องว่างใต้รูป */
 }
 .message-content:has(img) {
-    padding: 5px; /* ลด padding ของกรอบข้อความที่มีรูปภาพ */
-    background-color: transparent !important; /* ทำให้พื้นหลังโปร่งใส */
+  padding: 5px; /* ลด padding ของกรอบข้อความที่มีรูปภาพ */
+  background-color: transparent !important; /* ทำให้พื้นหลังโปร่งใส */
 }
 
 /* --- [เพิ่ม] Styles for Chat Images and Stickers --- */
 
 .chat-image {
-    /* 
+  /* 
       - ทำให้รูปภาพมีความกว้างไม่เกิน 400px
       - แต่ถ้าหน้าจอเล็กกว่า 400px มันก็จะย่อตามไป (เพราะมี max-width: 100% ด้วย)
     */
-    max-width: 250px; 
-    width: 100%; /* ทำให้มันพยายามจะกว้างเต็มที่ แต่ไม่เกินค่า max-width */
-    
-    height: auto;
-    border-radius: 10px;
-    cursor: pointer;
+  max-width: 250px;
+  width: 100%; /* ทำให้มันพยายามจะกว้างเต็มที่ แต่ไม่เกินค่า max-width */
+
+  height: auto;
+  border-radius: 10px;
+  cursor: pointer;
 }
 
 .chat-sticker {
-    width: 130px; /* เพิ่มขนาดเล็กน้อยให้ดูดีขึ้น */
-    height: 130px;
+  width: 130px; /* เพิ่มขนาดเล็กน้อยให้ดูดีขึ้น */
+  height: 130px;
 }
 
 /* ทำให้กรอบข้อความของรูปภาพไม่มี padding เพิ่มเติม */
 .message-content img {
-    display: block;
+  display: block;
 }
 .message-content:has(img) {
-    padding: 5px; 
-    background-color: transparent !important;
-    border-radius: 15px; /* เพิ่ม radius ให้กรอบนิดหน่อย */
+  padding: 5px;
+  background-color: transparent !important;
+  border-radius: 15px; /* เพิ่ม radius ให้กรอบนิดหน่อย */
 }
 
 #reply-message {
-    resize: none; /* ปิดการใช้งานปุ่มย่อ-ขยาย textarea ด้วยมือ */
-    overflow-y: auto; /* แสดง scrollbar ถ้าข้อความยาวมากๆ */
-    max-height: 150px; /* จำกัดความสูงสูงสุดไม่ให้สูงเกินไป (ปรับค่าได้ตามชอบ) */
-    line-height: 1.5;
+  resize: none; /* ปิดการใช้งานปุ่มย่อ-ขยาย textarea ด้วยมือ */
+  overflow-y: auto; /* แสดง scrollbar ถ้าข้อความยาวมากๆ */
+  max-height: 150px; /* จำกัดความสูงสูงสุดไม่ให้สูงเกินไป (ปรับค่าได้ตามชอบ) */
+  line-height: 1.5;
 }
-
 
 .list-group-item.active,
 .list-group-item.active strong {
-    color: #000000 !important; 
-    filter: brightness(95%);
+  color: #000000 !important;
+  filter: brightness(95%);
 }
 
 /* บังคับให้ตัวอักษรย่อยๆ (เช่น @OA_Name, ข้อความล่าสุด) ที่ปกติเป็นสีเทา (text-muted)
    ให้เปลี่ยนเป็นสีขาวที่โปร่งแสงเล็กน้อยเพื่อให้อ่านง่ายขึ้น */
 .list-group-item.active .text-muted {
-    color: rgb(0 0 0 / 85%) !important;
+  color: rgb(0 0 0 / 85%) !important;
 }
 
 /* --- ★★★ เพิ่มโค้ด CSS นี้เข้าไปท้ายไฟล์ ★★★ --- */
 .message-error-badge {
-    background-color: #f8d7da; /* สีแดงอ่อน */
-    color: #721c24; /* สีแดงเข้ม */
-    font-size: 0.75rem;
-    padding: 2px 8px;
-    border-radius: 10px;
-    margin-top: 5px;
-    display: inline-block; /* ทำให้ขนาดพอดีกับข้อความ */
-    font-weight: bold;
+  background-color: #f8d7da; /* สีแดงอ่อน */
+  color: #721c24; /* สีแดงเข้ม */
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-top: 5px;
+  display: inline-block; /* ทำให้ขนาดพอดีกับข้อความ */
+  font-weight: bold;
 }
 
 /* ทำให้ป้าย Error อยู่ชิดขวาสำหรับข้อความของ Admin */
 .admin-message {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
 }
 
 .unread-timer.timer-frozen {
-    color: #6c757d !important; /* สีเทา */
+  color: #6c757d !important; /* สีเทา */
+}
+
+/* สำหรับเปลี่ยนปุ่ม "Add a note..." โดยเฉพาะ */
+#edit-note-btn {
+  background-color: #ffffff; /* 1. ตั้งค่าพื้นหลังเป็นสีเหลืองอ่อน (ทึบแสง) */
+  border-color: #fceec9; /* 2. เปลี่ยนสีเส้นขอบให้เข้ากัน */
+  color: #555; /* 3. เปลี่ยนสีตัวอักษรให้อ่านง่ายขึ้น (สีเทาเข้ม) */
+}
+
+/* (แนะนำ) เพิ่มเอฟเฟกต์เมื่อเอาเมาส์ไปชี้ */
+#edit-note-btn:hover {
+  background-color: #fceec9; /* ทำให้สีพื้นหลังเข้มขึ้นเล็กน้อย */
+  border-color: #fadf9e; /* ทำให้สีขอบเข้มขึ้นเล็กน้อย */
+  color: #333; /* ทำให้สีตัวอักษรเข้มขึ้น */
+}
+
+.chat-input form {
+  display: flex;
+  position: relative;
+}
+.message {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 15px;
+  max-width: 75%;
+}
+.customer-message {
+  align-self: flex-start;
+  align-items: flex-start;
+}
+.admin-message {
+  align-self: flex-end;
+  align-items: flex-end;
+  margin-left: auto;
+}
+.message-content {
+  padding: 10px 15px;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+}
+.sticker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 15px;
+}
+.sticker-item {
+  cursor: pointer;
+  width: 100%;
+  transition: transform 0.1s ease-in-out;
+}
+.sticker-item:hover {
+  transform: scale(1.15);
+  z-index: 10;
+}
+.chat-image {
+  max-width: 250px;
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.chat-sticker {
+  width: 130px;
+  height: 130px;
+}
+.message-content img {
+  display: block;
+}
+#reply-message {
+  resize: none;
+  overflow-y: auto;
+  max-height: 150px;
+  line-height: 1.5;
+}
+
+/* =================================================================== */
+/* ★★★ Part 2: Theme System (Colors Only) ★★★                        */
+/* =================================================================== */
+
+/* --- 1. Color Palettes --- */
+:root {
+  --main-bg: #f0f2f5;
+  --main-border: #dee2e6;
+  --main-text: #212529;
+  --muted-text: #6c757d;
+  --component-bg: white;
+  --component-alt-bg: #f8f9fa;
+  --chat-header-bg: #e9ecef;
+  --customer-bubble-bg: #e9ecef;
+  --admin-bubble-bg: #0d6efd;
+  --admin-bubble-text: white;
+  --event-warning-bg: #fff3cd;
+  --event-warning-border: #ffe69c;
+  --event-danger-bg: #f8d7da;
+  --event-danger-border: #f5c2c7;
+  --event-danger-text: #58151c;
+  --status-unread-bg: #5facf8;
+  --status-read-bg: #d3d3d3;
+  --status-deposit-bg: #6ff87b;
+  --status-withdraw-bg: #f8a240;
+  --status-issue-bg: #f5727d;
+  --status-closed-bg: #f8f7f7;
+  --status-closed-opacity: 0.5;
+  --scrollbar-track-bg: #f1f1f1;
+  --scrollbar-thumb-bg: #c1c1c1;
+  --scrollbar-thumb-hover-bg: #a8a8a8;
+}
+
+[data-bs-theme="dark"] {
+  --main-bg: #212529;
+  --main-border: #495057;
+  --main-text: #f8f9fa;
+  --muted-text: #adb5bd;
+  --component-bg: #2c3034;
+  --component-alt-bg: #343a40;
+  --chat-header-bg: #343a40;
+  --customer-bubble-bg: #343a40;
+  --admin-bubble-bg: #339af0;
+  --admin-bubble-text: white;
+  --event-warning-bg: #664d03;
+  --event-warning-border: #997404;
+  --event-danger-bg: #58151c;
+  --event-danger-border: #842029;
+  --event-danger-text: #f1aeb5;
+  --status-unread-bg: #225c94;
+  --status-read-bg: #555555;
+  --status-deposit-bg: #2a7d33;
+  --status-withdraw-bg: #b86e1a;
+  --status-issue-bg: #a13a43;
+  --status-closed-bg: #343a40;
+  --status-closed-opacity: 0.7;
+  --scrollbar-track-bg: var(--main-bg);
+  --scrollbar-thumb-bg: #555;
+  --scrollbar-thumb-hover-bg: #777;
+}
+
+/* --- 2. Applying Colors using Variables --- */
+body {
+  background-color: var(--main-bg);
+  color: var(--main-text);
+}
+.user-list-panel {
+  border-right: 1px solid var(--main-border);
+}
+.user-list-header {
+  border-bottom: 1px solid var(--main-border);
+}
+.chat-header {
+  border-bottom: 1px solid var(--main-border);
+  background-color: var(--chat-header-bg);
+}
+.chat-input {
+  border-top: 1px solid var(--main-border);
+  background-color: var(--component-alt-bg);
+}
+.chat-placeholder,
+.message-meta,
+.event-message,
+.event-timestamp {
+  color: var(--muted-text);
+}
+.customer-message .message-content {
+  background-color: var(--customer-bubble-bg);
+  color: var(--main-text);
+}
+.admin-message .message-content {
+  background-color: var(--admin-bubble-bg);
+  color: var(--admin-bubble-text);
+}
+.event-message .message-content {
+  background-color: var(--event-warning-bg);
+  border: 1px solid var(--event-warning-border);
+}
+.event-message.event-closed .message-content {
+  background-color: var(--event-danger-bg);
+  border-color: var(--event-danger-border);
+  color: var(--event-danger-text);
+}
+.list-group-item-action.status-unread {
+  background-color: var(--status-unread-bg);
+}
+.list-group-item-action.status-deposit {
+  background-color: var(--status-deposit-bg);
+}
+.list-group-item-action.status-withdraw {
+  background-color: var(--status-withdraw-bg);
+}
+.list-group-item-action.status-issue {
+  background-color: var(--status-issue-bg);
+}
+.list-group-item-action.status-closed {
+  background-color: var(--status-closed-bg);
+  opacity: var(--status-closed-opacity);
+}
+.list-group-item-action.status-read {
+  background-color: var(--status-read-bg);
+}
+.message-content:has(img) {
+  background-color: transparent !important;
+}
+
+/* --- 3. Final Overrides for stubborn elements --- */
+[data-bs-theme="dark"] {
+  .user-list-panel,
+  .user-list-items,
+  .list-group,
+  .chat-messages {
+    background-color: var(--component-bg) !important;
+  }
+}
+
+/* --- 4. Scrollbar Styles --- */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track-bg);
+}
+::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb-bg);
+  border-radius: 4px;
+  border: 2px solid var(--scrollbar-track-bg);
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover-bg);
+}
+
+/* =================================================================== */
+/* ★★★ [ใหม่] สไตล์สำหรับปุ่มสไลด์ (Toggle Switch) ★★★              */
+/* =================================================================== */
+
+/* --- 1. กรอบของสวิตช์ --- */
+.theme-switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;  /* ความกว้าง */
+  height: 26px; /* ความสูง */
+  margin: 0 10px; /* จัดระยะห่างเล็กน้อย */
+  vertical-align: middle;
+}
+
+/* ซ่อน checkbox จริงไป */
+.theme-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* --- 2. ตัวรางสไลด์ --- */
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc; /* สีพื้นหลังตอนเป็น Light Mode */
+  transition: .4s;
+}
+
+/* --- 3. ตัวปุ่มกลมๆ ที่เลื่อนไปมา --- */
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .4s;
+}
+
+/* --- 4. การเปลี่ยนแปลงเมื่อถูก "ติ๊ก" (เปิด Dark Mode) --- */
+input:checked + .slider {
+  background-color: #2196F3; /* เปลี่ยนสีรางเป็นสีฟ้าเมื่อเปิด */
+}
+
+input:checked + .slider:before {
+  transform: translateX(24px); /* สั่งให้ปุ่มกลมๆ เลื่อนไปทางขวา */
+}
+
+/* --- 5. ทำให้เป็นทรงแคปซูล --- */
+.slider.round {
+  border-radius: 34px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+
+/* =================================================================== */
+/* ★★★ [สุดท้าย] แก้ไขพื้นหลังของ Chat Placeholder ★★★                  */
+/* =================================================================== */
+
+[data-bs-theme="dark"] {
+
+  /*
+    กำหนดให้กรอบหลักของหน้าต่างแชท (panel ขวา)
+    มีพื้นหลังเป็นสีเดียวกับ Body หลักของ Dark Mode
+  */
+  .chat-window-panel {
+    background-color: var(--main-bg);
+  }
+
+  /*
+    ปรับสีตัวอักษรของ Placeholder ให้อ่อนลง
+    เพื่อให้มองเห็นได้บนพื้นหลังสีเข้ม
+  */
+  .chat-placeholder {
+    color: var(--muted-text);
+  }
+
+}
+/* บังคับให้ body ใช้สีพื้นหลังของธีมเสมอ */
+body {
+    background-color: var(--main-bg) !important;
+}
+
+/*
+  เจาะจงไปที่ h4 ที่อยู่ใน a ที่อยู่ใน .user-list-header
+  และใช้ !important เพื่อให้มีสิทธิ์สูงกว่า text-dark
+*/
+.user-list-header a h4 {
+  color: var(--main-text-color) !important;
+  margin-bottom: 0;
 }

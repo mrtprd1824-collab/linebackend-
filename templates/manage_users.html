@@ -33,7 +33,6 @@
                                     </span>
                                 </td>
                                 <td class="text-end">
-                                    {# --- [ปรับปรุง] เปลี่ยนปุ่ม Delete --- #}
                                     <form method="POST" action="{{ url_for('admin.delete_user', user_id=u.id) }}"
                                         onsubmit="return confirm('Are you sure you want to delete this user?');"
                                         class="d-inline">
@@ -66,11 +65,19 @@
                         <label for="email" class="form-label">Email</label>
                         <input type="email" name="email" id="email" class="form-control" required>
                     </div>
+
+                    {# --- [ปรับปรุง] แก้ไขช่อง Password --- #}
                     <div class="mb-3">
                         <label for="password" class="form-label">Password</label>
-                        <input type="password" name="password" id="password" class="form-control" required
-                            minlength="6">
+                        <div class="input-group">
+                            <input type="password" name="password" id="password" class="form-control" required
+                                minlength="6">
+                            <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                                <i class="bi bi-eye-fill" id="togglePasswordIcon"></i>
+                            </button>
+                        </div>
                     </div>
+
                     <div class="mb-3">
                         <label for="role" class="form-label">Role</label>
                         <select name="role" id="role" class="form-select">
@@ -88,6 +95,31 @@
         </div>
     </div>
 </div>
+{% endblock %}
 
+{# --- [ปรับปรุง] เพิ่ม JavaScript สำหรับควบคุมปุ่มลูกตา --- #}
+{% block scripts %}
+{{ super() if super }}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const togglePassword = document.querySelector('#togglePassword');
+        const password = document.querySelector('#password');
+        const icon = document.querySelector('#togglePasswordIcon');
 
+        togglePassword.addEventListener('click', function () {
+            // สลับประเภทของ input ระหว่าง 'password' กับ 'text'
+            const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+            password.setAttribute('type', type);
+
+            // สลับไอคอนลูกตา
+            if (type === 'password') {
+                icon.classList.remove('bi-eye-slash-fill');
+                icon.classList.add('bi-eye-fill');
+            } else {
+                icon.classList.remove('bi-eye-fill');
+                icon.classList.add('bi-eye-slash-fill');
+            }
+        });
+    });
+</script>
 {% endblock %}

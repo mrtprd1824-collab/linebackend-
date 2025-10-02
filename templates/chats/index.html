@@ -1,16 +1,12 @@
 {% extends "base.html" %}
 {% set page_type = 'chat' %}
 
-{% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/chat_style.css') }}">
-{% endblock %}
-
 {% block content %}
 <div class="chat-container">
 
     <div class="user-list-panel">
         <div class="user-list-header">
-            <a href="{{ url_for('chats.index') }}" class="text-decoration-none text-dark">
+            <a href="/chats/" class="text-decoration-none">
                 <h4>💬 Conversations</h4>
             </a>
             {% if pagination.page > 1 %}
