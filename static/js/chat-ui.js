@@ -53,11 +53,10 @@ function createMessageElement(msgData) {
     wrapper.appendChild(content);
 
     if (msgData.sender_type === 'admin' && msgData.line_sent_successfully === false) {
-        const errorBadge = document.createElement('div');
-        errorBadge.className = 'message-error-badge';
-        errorBadge.textContent = errorMessage || '! ส่งไม่สำเร็จ';
-        errorBadge.title = msgData.line_error_message || 'ไม่สามารถส่งข้อความนี้ไปยัง LINE ได้';
-        wrapper.appendChild(errorBadge);
+        // ตอนแรกไม่ต้องสร้าง badge เลย
+        // แค่โยนใส่ failedMessageQueue ให้ markMessageAsFailed จัดการ
+        if (!window.failedMessageQueue) window.failedMessageQueue = {};
+        window.failedMessageQueue[msgData.id] = msgData.line_error_message;
     }
 
 
@@ -141,17 +140,23 @@ function populateInlineQuickReply(resultsElement, replies) {
 
 function markMessageAsFailed(messageId, errorMessage) {
     const messageElement = document.getElementById(`msg-${messageId}`);
-    if (!messageElement) {
-        console.error(`Could not find message element with ID: msg-${messageId} to mark as failed.`);
-        return;
-    }
+    if (!messageElement) return;
+
+    // ถ้ามี error ซ้ำแล้ว ลบออกก่อน
+    const oldBadge = messageElement.querySelector('.message-error-wrapper');
+    if (oldBadge) oldBadge.remove();
+
+    // wrapper แยกใหม่สำหรับ error
+    const errorWrapper = document.createElement('div');
+    errorWrapper.className = 'message-error-wrapper';
 
     const errorBadge = document.createElement('div');
     errorBadge.className = 'message-error-badge';
     errorBadge.textContent = errorMessage || '! ส่งไม่สำเร็จ';
     errorBadge.title = errorMessage || 'ไม่สามารถส่งข้อความนี้ไปยัง LINE ได้';
 
-    messageElement.appendChild(errorBadge);
+    errorWrapper.appendChild(errorBadge);
+    messageElement.appendChild(errorWrapper);
 }
 
 /**
@@ -168,11 +173,11 @@ function displayUserTags(tags) {
         tags.forEach(tag => {
             const tagBadge = document.createElement('span');
             tagBadge.className = 'badge rounded-pill me-1'; // ใช้ badge ของ Bootstrap
-            
+
             // กำหนดสีพื้นหลังและสีตัวอักษร
-            tagBadge.style.backgroundColor = tag.color || '#6c757d'; 
-            tagBadge.style.color = '#fff'; 
-            
+            tagBadge.style.backgroundColor = tag.color || '#6c757d';
+            tagBadge.style.color = '#fff';
+
             tagBadge.textContent = tag.name;
             tagBadge.dataset.tagId = tag.id; // เก็บ ID ของแท็กไว้เผื่อใช้ในอนาคต
 
