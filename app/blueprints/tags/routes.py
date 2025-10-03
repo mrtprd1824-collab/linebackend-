@@ -1,5 +1,7 @@
 from flask import Blueprint, request, jsonify
 from app.models import db, Tag, LineUser
+from flask import render_template, request, flash, redirect, url_for
+from flask_login import login_required
 
 # สร้าง Blueprint ที่ชื่อว่า 'tags'
 bp = Blueprint('tags', __name__, url_prefix='/api/tags')
@@ -68,3 +70,41 @@ def remove_tag_from_user(user_id, tag_id):
         db.session.commit()
 
     return jsonify({'success': True, 'message': f'Tag "{tag.name}" removed from user {user.id}'})
+
+@bp.route('/manage')
+@login_required
+def manage_tags_page():
+    """Route สำหรับแสดงหน้า 'Manage Tags'"""
+    all_tags = Tag.query.order_by(Tag.name).all()
+    return render_template('tags/manage_tags.html', tags=all_tags)
+
+@bp.route('/add', methods=['POST'])
+@login_required
+def add_tag():
+    """Route สำหรับรับข้อมูลจากฟอร์มเพื่อสร้าง Tag ใหม่"""
+    name = request.form.get('name')
+    color = request.form.get('color')
+
+    if not name or not color:
+        flash('Tag name and color are required.', 'danger')
+        return redirect(url_for('tags.manage_tags_page'))
+
+    if Tag.query.filter_by(name=name).first():
+        flash('A tag with this name already exists.', 'warning')
+        return redirect(url_for('tags.manage_tags_page'))
+
+    new_tag = Tag(name=name, color=color)
+    db.session.add(new_tag)
+    db.session.commit()
+    flash('New tag created successfully!', 'success')
+    return redirect(url_for('tags.manage_tags_page'))
+
+@bp.route('/<int:tag_id>/delete', methods=['POST'])
+@login_required
+def delete_tag(tag_id):
+    """Route สำหรับลบ Tag"""
+    tag_to_delete = Tag.query.get_or_404(tag_id)
+    db.session.delete(tag_to_delete)
+    db.session.commit()
+    flash(f'Tag "{tag_to_delete.name}" has been deleted.', 'success')
+    return redirect(url_for('tags.manage_tags_page'))
