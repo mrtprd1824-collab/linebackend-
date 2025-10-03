@@ -55,7 +55,7 @@ function createMessageElement(msgData) {
     if (msgData.sender_type === 'admin' && msgData.line_sent_successfully === false) {
         const errorBadge = document.createElement('div');
         errorBadge.className = 'message-error-badge';
-        errorBadge.textContent = '! ส่งไม่สำเร็จ';
+        errorBadge.textContent = errorMessage || '! ส่งไม่สำเร็จ';
         errorBadge.title = msgData.line_error_message || 'ไม่สามารถส่งข้อความนี้ไปยัง LINE ได้';
         wrapper.appendChild(errorBadge);
     }
