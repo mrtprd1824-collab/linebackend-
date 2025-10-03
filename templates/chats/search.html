@@ -40,7 +40,11 @@
             </div>
             <div class="mt-3 border-top pt-3 text-end">
                 <button type="reset" class="btn btn-secondary">Clear</button>
-                <button type="submit" class="btn btn-primary"><i class="bi bi-funnel-fill me-2"></i>Search</button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-funnel-fill me-2"></i>Search</button>
+                <button type="button" id="export-btn" class="btn btn-outline-success">
+                    <i class="bi bi-file-earmark-spreadsheet-fill me-2"></i>Export
+                </button>
             </div>
         </form>
     </div>
@@ -79,6 +83,7 @@
         const searchForm = document.getElementById('search-form');
         const resultsTbody = document.getElementById('results-tbody');
         const paginationContainer = document.getElementById('pagination-container');
+        const exportBtn = document.getElementById('export-btn');
 
         // --- 1. Fetch all available tags to populate the filter ---
         async function populateTagsFilter() {
@@ -237,6 +242,26 @@
 
             paginationContainer.appendChild(ul);
         }
+
+        exportBtn.addEventListener('click', function () {
+            // ดึงค่าจากฟอร์มมาเหมือนตอนกด Search
+            const query = document.getElementById('search-query').value;
+            const selectedTags = Array.from(document.querySelectorAll('input[name="tags"]:checked')).map(cb => cb.value);
+            const startDate = document.getElementById('search-start-date').value;
+            const endDate = document.getElementById('search-end-date').value;
+            const oaId = document.getElementById('search-oa').value;
+
+            // สร้าง URL สำหรับ Export โดยใช้เงื่อนไขเดียวกับการค้นหา
+            const params = new URLSearchParams();
+            if (query) params.append('q', query);
+            if (selectedTags.length > 0) params.append('tags', selectedTags.join(','));
+            if (startDate) params.append('start_date', startDate);
+            if (endDate) params.append('end_date', endDate);
+            if (oaId) params.append('oa_id', oaId);
+
+            // สั่งให้เบราว์เซอร์ดาวน์โหลดไฟล์จาก URL ที่สร้างขึ้น
+            window.location.href = `/api/search/users/export?${params.toString()}`;
+        });
 
         // --- Initial Load ---
         populateTagsFilter();

@@ -9,6 +9,10 @@ from app.models import db, LineUser, Tag , LineAccount
 import pytz
 from datetime import datetime, timedelta
 
+import io
+import csv
+from flask import Response
+
 @bp.route('/search_page')
 @login_required
 def search_page():
@@ -105,3 +109,75 @@ def search_users_api():
             'has_prev': pagination.has_prev
         }
     })
+
+
+@bp.route('/api/search/users/export')
+@login_required
+def export_users():
+    """API สำหรับ Export ผลการค้นหาทั้งหมดเป็น CSV"""
+    # 1. คัดลอก Logic การรับค่าและสร้าง Query ทั้งหมดมาจากฟังก์ชัน search_users_api()
+    # เพื่อให้แน่ใจว่าเงื่อนไขการกรองจะเหมือนกันทุกประการ
+    query_term = request.args.get('q', '').strip()
+    tag_ids_str = request.args.get('tags', '')
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+    oa_id = request.args.get('oa_id', type=int)
+
+    query = LineUser.query.join(LineAccount, LineUser.line_account_id == LineAccount.id)
+
+    if query_term:
+        search_pattern = f"%{query_term}%"
+        query = query.filter(or_(LineUser.display_name.ilike(search_pattern), LineUser.nickname.ilike(search_pattern), LineUser.phone.ilike(search_pattern), LineUser.user_id.ilike(search_pattern)))
+    if tag_ids_str:
+        try:
+            tag_ids = [int(id) for id in tag_ids_str.split(',')]
+            query = query.join(LineUser.tags).filter(Tag.id.in_(tag_ids))
+        except ValueError: pass
+    if oa_id:
+        query = query.filter(LineUser.line_account_id == oa_id)
+    if start_date_str:
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+        query = query.filter(LineUser.last_message_at >= start_date)
+    if end_date_str:
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d') + timedelta(days=1)
+        query = query.filter(LineUser.last_message_at < end_date)
+
+    # 2. ดึงข้อมูล "ทั้งหมด" โดยไม่ใช้ .paginate()
+    users = query.order_by(LineUser.last_message_at.desc()).all()
+
+    # 3. สร้างไฟล์ CSV ใน Memory
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    # เขียน Header
+    header = ['Tag', 'Name/Nickname', 'Phone', 'User ID', 'Line OA', 'Last Seen (Bangkok)']
+    writer.writerow(header)
+
+    # เขียนข้อมูลแต่ละแถว
+    utc_zone = pytz.utc
+    bkk_zone = pytz.timezone('Asia/Bangkok')
+    for user in users:
+        tags_str = ', '.join([tag.name for tag in user.tags])
+        last_seen_str = 'N/A'
+        if user.last_message_at:
+            bkk_time = user.last_message_at.replace(tzinfo=utc_zone).astimezone(bkk_zone)
+            last_seen_str = bkk_time.strftime('%Y-%m-%d %H:%M')
+
+        row = [
+            tags_str,
+            user.nickname or user.display_name,
+            user.phone,
+            user.user_id,
+            user.line_account.name,
+            last_seen_str
+        ]
+        writer.writerow(row)
+
+    output.seek(0) # กลับไปที่จุดเริ่มต้นของไฟล์ใน memory
+
+    # 4. ส่งไฟล์ CSV กลับไปให้ผู้ใช้ดาวน์โหลด
+    return Response(
+        output,
+        mimetype="text/csv",
+        headers={"Content-Disposition": "attachment;filename=customers_export.csv"}
+    )
