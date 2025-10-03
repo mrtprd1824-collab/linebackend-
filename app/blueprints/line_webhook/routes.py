@@ -1,4 +1,8 @@
-from flask import request, current_app , jsonify
+from flask import abort, request, current_app, jsonify # เพิ่ม abort
+
+# [เพิ่ม] import เครื่องมือ S3 ของคุณ
+from app.services import s3_client
+
 from flask_socketio import join_room, leave_room
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
@@ -8,16 +12,10 @@ import json
 import os
 from datetime import datetime
 
-
-# [สำคัญ] เพิ่ม import ที่จำเป็น
 from app.extensions import socketio
-from flask_socketio import join_room, leave_room
-from linebot.models import (
-    FollowEvent, UnfollowEvent, MessageEvent
-)
 from linebot.models import (
     FollowEvent, UnfollowEvent, MessageEvent,
-    TextMessage, ImageMessage, StickerMessage  # <--- 1. เพิ่ม Model ของ Message Type
+    TextMessage, ImageMessage, StickerMessage
 )
 
 
@@ -118,35 +116,43 @@ def callback(webhook_path):
 
                 # --- ตรวจสอบว่าเป็นข้อความรูปภาพ ---
                 elif isinstance(event.message, ImageMessage):
-                    message_id = event.message.id # <--- 3. ใช้ dot notation
+                    message_id = event.message.id
                     message_content = line_bot_api.get_message_content(message_id)
-                    
-                    file_name = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{message_id}.jpg"
-                    save_path = os.path.join(current_app.root_path, "..", "static", "uploads", file_name)
-                    os.makedirs(os.path.dirname(save_path), exist_ok=True)
-                    
-                    with open(save_path, "wb") as f:
-                        for chunk in message_content.iter_content():
-                            f.write(chunk)
 
-                    new_msg = LineMessage(
-                        line_account_id=line_account.id, user_id=user_id,
-                        message_type="image",
-                        message_url=f"/static/uploads/{file_name}",
-                        timestamp=datetime.utcnow(), is_outgoing=False
+                    # สร้าง "อ็อบเจกต์จำลอง" ที่มีหน้าตาเหมือน FileStorage
+                    # เพื่อให้เข้ากับฟังก์ชัน s3_client.upload_fileobj
+                    class MockFileStorage:
+                        def __init__(self, stream, filename, content_type):
+                            self.stream = stream
+                            self.filename = filename
+                            self.content_type = content_type
+
+                    mock_file = MockFileStorage(
+                        stream=message_content.raw,
+                        filename=f"{message_id}.jpg",
+                        content_type=message_content.content_type
                     )
+                    
+                    # เรียกใช้เครื่องมือ s3_client ของคุณ
+                    s3_url = s3_client.upload_fileobj(mock_file)
 
-                # --- ตรวจสอบว่าเป็นสติกเกอร์ ---
+                    if s3_url:
+                        new_msg = LineMessage(
+                            line_account_id=line_account.id, user_id=user_id,
+                            message_type="image",
+                            message_url=s3_url, # <-- ใช้ URL จาก s3_client
+                            timestamp=datetime.utcnow(), is_outgoing=False
+                        )
+
                 elif isinstance(event.message, StickerMessage):
+                    # ... โค้ดส่วนนี้เหมือนเดิม ...
                     new_msg = LineMessage(
                         line_account_id=line_account.id, user_id=user_id,
                         message_type="sticker",
-                        sticker_id=event.message.sticker_id, # <--- 3. ใช้ dot notation
-                        package_id=event.message.package_id, # <--- 3. ใช้ dot notation
+                        sticker_id=event.message.sticker_id,
+                        package_id=event.message.package_id,
                         timestamp=datetime.utcnow(), is_outgoing=False
                     )
-                
-                # --- ถ้าเป็น Message Type อื่นๆ ที่ไม่รองรับ ให้ข้ามไป ---
                 else:
                     continue
             
