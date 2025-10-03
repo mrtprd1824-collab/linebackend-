@@ -184,37 +184,59 @@
             const ul = document.createElement('ul');
             ul.className = 'pagination justify-content-center';
 
-            // Previous button
-            const prevLi = document.createElement('li');
-            prevLi.className = `page-item ${!pagination.has_prev ? 'disabled' : ''}`;
-            prevLi.innerHTML = `<a class="page-link" href="#" data-page="${pagination.current_page - 1}">Previous</a>`;
-            ul.appendChild(prevLi);
+            const currentPage = pagination.current_page;
+            const totalPages = pagination.total_pages;
 
-            // Page numbers
-            for (let i = 1; i <= pagination.total_pages; i++) {
-                const pageLi = document.createElement('li');
-                pageLi.className = `page-item ${i === pagination.current_page ? 'active' : ''}`;
-                pageLi.innerHTML = `<a class="page-link" href="#" data-page="${i}">${i}</a>`;
-                ul.appendChild(pageLi);
+            // --- Helper function to create a page link ---
+            const createPageLink = (page, text, isDisabled = false, isActive = false) => {
+                const li = document.createElement('li');
+                li.className = `page-item ${isDisabled ? 'disabled' : ''} ${isActive ? 'active' : ''}`;
+                li.innerHTML = `<a class="page-link" href="#" data-page="${page}">${text}</a>`;
+                return li;
+            };
+
+            // --- Previous Button ---
+            ul.appendChild(createPageLink(currentPage - 1, 'Previous', !pagination.has_prev));
+
+            // --- Page Number Logic ---
+            const window = 2; // จำนวนหน้าที่แสดงข้างๆ หน้าปัจจุบัน
+            let start = Math.max(2, currentPage - window);
+            let end = Math.min(totalPages - 1, currentPage + window);
+
+            // Page 1
+            ul.appendChild(createPageLink(1, '1', false, currentPage === 1));
+
+            // Ellipsis at the start
+            if (start > 2) {
+                const li = document.createElement('li');
+                li.className = 'page-item disabled';
+                li.innerHTML = `<span class="page-link">...</span>`;
+                ul.appendChild(li);
             }
 
-            // Next button
-            const nextLi = document.createElement('li');
-            nextLi.className = `page-item ${!pagination.has_next ? 'disabled' : ''}`;
-            nextLi.innerHTML = `<a class="page-link" href="#" data-page="${pagination.current_page + 1}">Next</a>`;
-            ul.appendChild(nextLi);
+            // Middle pages
+            for (let i = start; i <= end; i++) {
+                ul.appendChild(createPageLink(i, i, false, currentPage === i));
+            }
+
+            // Ellipsis at the end
+            if (end < totalPages - 1) {
+                const li = document.createElement('li');
+                li.className = 'page-item disabled';
+                li.innerHTML = `<span class="page-link">...</span>`;
+                ul.appendChild(li);
+            }
+
+            // Last page (if total > 1)
+            if (totalPages > 1) {
+                ul.appendChild(createPageLink(totalPages, totalPages, false, currentPage === totalPages));
+            }
+
+            // --- Next Button ---
+            ul.appendChild(createPageLink(currentPage + 1, 'Next', !pagination.has_next));
 
             paginationContainer.appendChild(ul);
         }
-
-        paginationContainer.addEventListener('click', function (event) {
-            event.preventDefault();
-            const link = event.target.closest('.page-link');
-            if (link && !link.closest('.disabled')) {
-                const page = parseInt(link.dataset.page);
-                performSearch(page);
-            }
-        });
 
         // --- Initial Load ---
         populateTagsFilter();
