@@ -17,6 +17,7 @@ from linebot.models import (
     FollowEvent, UnfollowEvent, MessageEvent,
     TextMessage, ImageMessage, StickerMessage
 )
+from io import BytesIO
 
 
 @bp.route("/<string:webhook_path>/callback", methods=["POST"])
@@ -125,8 +126,14 @@ def callback(webhook_path):
                             self.filename = filename
                             self.content_type = content_type
 
+                    # ★★★ [แก้ไข] เปลี่ยนจาก .iter_content() เป็น .content แล้วใช้ BytesIO ★★★
+                    # 1. ดึงข้อมูลรูปภาพทั้งหมดเป็น bytes
+                    image_bytes = message_content.content
+                    # 2. สร้างไฟล์จำลองในหน่วยความจำจาก bytes
+                    image_stream = BytesIO(image_bytes)
+
                     mock_file = MockFileStorage(
-                        stream=message_content.iter_content(), # ★★★ แก้ไขตรงนี้ ★★★
+                        stream=image_stream, # <-- ใช้ stream ตัวใหม่
                         filename=f"{message_id}.jpg",
                         content_type=message_content.content_type
                     )
@@ -137,7 +144,7 @@ def callback(webhook_path):
                         new_msg = LineMessage(
                             line_account_id=line_account.id, user_id=user_id,
                             message_type="image",
-                            message_url=s3_url, # <-- ใช้ URL จาก s3_client
+                            message_url=s3_url,
                             timestamp=datetime.utcnow(), is_outgoing=False
                         )
 
