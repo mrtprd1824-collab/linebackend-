@@ -119,8 +119,6 @@ def callback(webhook_path):
                     message_id = event.message.id
                     message_content = line_bot_api.get_message_content(message_id)
 
-                    # สร้าง "อ็อบเจกต์จำลอง" ที่มีหน้าตาเหมือน FileStorage
-                    # เพื่อให้เข้ากับฟังก์ชัน s3_client.upload_fileobj
                     class MockFileStorage:
                         def __init__(self, stream, filename, content_type):
                             self.stream = stream
@@ -128,12 +126,11 @@ def callback(webhook_path):
                             self.content_type = content_type
 
                     mock_file = MockFileStorage(
-                        stream=message_content.raw,
+                        stream=message_content.iter_content(), # ★★★ แก้ไขตรงนี้ ★★★
                         filename=f"{message_id}.jpg",
                         content_type=message_content.content_type
                     )
                     
-                    # เรียกใช้เครื่องมือ s3_client ของคุณ
                     s3_url = s3_client.upload_fileobj(mock_file)
 
                     if s3_url:
