@@ -101,6 +101,7 @@ def callback(webhook_path):
                     line_user.status = 'unread'
                 line_user.unread_count = (line_user.unread_count or 0) + 1
                 line_user.last_seen_at = datetime.utcnow()
+                line_user.last_message_at = datetime.utcnow()
                 line_user.is_blocked = False # ถ้าส่งข้อความมาได้ แสดงว่าไม่บล็อก
                 db.session.commit()
 

@@ -94,6 +94,11 @@
                         <!-- Admin Menu -->
                         {% if current_user.is_admin %}
                         <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('search.search_page') }}">
+                                <i class="bi bi-search me-2"></i>Search Users
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('line_admin.line_admin_index') }}">
                                 <i class="bi bi-link-45deg me-2"></i>Line OA
                             </a>

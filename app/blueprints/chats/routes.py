@@ -170,7 +170,8 @@ def index():
                 "user": user,
                 "unread_count": unread_count,
                 # 3. เพิ่ม key ใหม่เข้าไปในข้อมูล
-                "last_unread_timestamp": correct_timestamp 
+                "last_unread_timestamp": correct_timestamp ,
+                "tags": [{'name': tag.name, 'color': tag.color} for tag in user.tags]
             })
         
         return render_template(
@@ -271,15 +272,26 @@ def get_messages_for_user(user_id):
             'frozen_time': frozen_time
         }
         socketio.emit('resort_sidebar', conversation_data)
-    
+
+    user_tags = [{'id': tag.id, 'name': tag.name, 'color': tag.color} for tag in line_user.tags]
     total_messages = LineMessage.query.filter_by(user_id=user_id, line_account_id=oa_id).count()
     messages_query = LineMessage.query.filter_by(user_id=user_id, line_account_id=oa_id).order_by(LineMessage.timestamp.desc()).limit(10).all()
     messages_query.reverse()
     processed_messages = [format_message_for_api(m) for m in messages_query]
     response_data = {
-        "user": {"db_id": line_user.id, "display_name": line_user.display_name, "nickname": line_user.nickname or '', "phone": line_user.phone or '', "note": line_user.note or '', "status": line_user.status, "is_blocked": line_user.is_blocked},
+        "user": {
+            "db_id": line_user.id, 
+            "display_name": line_user.display_name, 
+            "nickname": line_user.nickname or '', 
+            "phone": line_user.phone or '', 
+            "note": line_user.note or '', 
+            "status": line_user.status, 
+            "is_blocked": line_user.is_blocked,
+            "tags": user_tags
+        },
         "account": {"id": account.id, "name": account.name, "manager_url": account.manager_url},
-        "messages": processed_messages, "total_messages": total_messages
+        "messages": processed_messages, 
+        "total_messages": total_messages
     }
     return jsonify(response_data)
 
@@ -317,6 +329,8 @@ def send_message():
         except Exception as e:
             line_sent_successfully = False
             line_api_error_message = f"An unexpected error occurred: {str(e)}"
+
+    line_user.last_message_at = datetime.utcnow()
 
     new_message = LineMessage(
         user_id=user_id,

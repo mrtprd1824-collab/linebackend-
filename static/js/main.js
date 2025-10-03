@@ -49,6 +49,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let isLoadingMore = false;
     let currentRoom = null;
     let currentFullNote = '';
+    let currentUserTags = [];
 
 
 
@@ -82,6 +83,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const noteEditorModal = new bootstrap.Modal(document.getElementById('noteEditorModal'));
     const fullNoteTextarea = document.getElementById('full-note-textarea');
     const newMessageAlert = document.getElementById('new-message-alert');
+    const tagsModal = new bootstrap.Modal(document.getElementById('tagsModal'));
+    const saveTagsBtn = document.getElementById('save-tags-btn');
+    const tagsChecklistContainer = document.getElementById('tags-checklist-container');
 
 
     // =======================================================
@@ -229,6 +233,7 @@ document.addEventListener('DOMContentLoaded', function () {
         try {
             const data = await fetchChatData(userId, oaId, frozenTime);
             console.log("Data received from server for this user:", data.user);
+            console.log("Tags for this user:", data.user.tags);
 
             currentUserId = userId;
             currentOaId = oaId;
@@ -241,7 +246,61 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // (โค้ดส่วน Render ทั้งหมดยาวๆ เหมือนเดิม)
             const chatHeader = document.getElementById('chat-header');
-            chatHeader.innerHTML = `<form id="user-info-form" class="p-2 border-bottom"><div class="row gx-2 align-items-center mb-2"><div class="col"><input type="text" id="user-nickname" class="form-control form-control-sm" placeholder="Nickname" value="${data.user.nickname || ''}"></div><div class="col"><input type="text" id="user-phone" class="form-control form-control-sm" placeholder="Phone" value="${data.user.phone || ''}"></div><div class="col-auto"><button type="submit" class="btn btn-sm btn-success">Save</button> <a href="/chats/download/${userId}?oa=${oaId}" target="_blank" class="btn btn-sm btn-outline-secondary" title="Download Chat History"><i class="bi bi-download"></i></a></div></div><div class="row gx-2 align-items-center"><div class="col"><button type="button" id="edit-note-btn" class="btn btn-outline-secondary btn-sm w-100 text-start"><i class="bi bi-pencil-square"></i> <span id="note-preview" class="text-truncate d-inline-block" style="max-width: 80%;">${data.user.note ? data.user.note.replace(/\n/g, ' ') : 'Add a note...'}</span></button></div><div class="col-auto"><div class="btn-group btn-group-sm" role="group"><button type="button" class="btn btn-outline-success status-btn" data-status="deposit">ฝาก</button><button type="button" class="btn btn-outline-warning status-btn" data-status="withdraw">ถอน</button><button type="button" class="btn btn-outline-danger status-btn" data-status="issue">ติดปัญหา</button><button type="button" class="btn btn-outline-dark status-btn" data-status="closed">ปิดเคส</button></div></div></div>${data.account.manager_url ? `<a href="${data.account.manager_url}" target="_blank" rel="noopener noreferrer" class="text-muted d-block mt-2 text-decoration-none" title="Open in LINE Official Account Manager">@${data.account.name} <i class="bi bi-box-arrow-up-right small"></i></a>` : `<small class="text-muted d-block mt-2">@${data.account.name}</small>`}</form>`;
+            chatHeader.innerHTML = `
+                <form id="user-info-form">
+                    <div class="p-2 border-bottom">
+                        <div class="row gx-2 align-items-center mb-2">
+                            <div class="col">
+                                <input type="text" id="user-nickname" class="form-control form-control-sm" placeholder="Nickname" value="${data.user.nickname || ''}">
+                            </div>
+                            <div class="col">
+                                <input type="text" id="user-phone" class="form-control form-control-sm" placeholder="Phone" value="${data.user.phone || ''}">
+                            </div>
+                            <div class="col-auto">
+                                <button type="submit" class="btn btn-sm btn-success">Save</button> 
+                                <a href="/chats/download/${userId}?oa=${oaId}" target="_blank" class="btn btn-sm btn-outline-secondary" title="Download Chat History">
+                                    <i class="bi bi-download"></i>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="row gx-2 align-items-center">
+                            <div class="col">
+                                <button type="button" id="edit-note-btn" class="btn btn-outline-secondary btn-sm w-100 text-start">
+                                    <i class="bi bi-pencil-square"></i> 
+                                    <span id="note-preview" class="text-truncate d-inline-block" style="max-width: 80%;">${data.user.note ? data.user.note.replace(/\n/g, ' ') : 'Add a note...'}</span>
+                                </button>
+                            </div>
+                            <div class="col-auto">
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <button type="button" class="btn btn-outline-success status-btn" data-status="deposit">ฝาก</button>
+                                    <button type="button" class="btn btn-outline-warning status-btn" data-status="withdraw">ถอน</button>
+                                    <button type="button" class="btn btn-outline-danger status-btn" data-status="issue">ติดปัญหา</button>
+                                    <button type="button" class="btn btn-outline-dark status-btn" data-status="closed">ปิดเคส</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="p-2 border-bottom">
+                        <div id="tag-management-area">
+                            <div id="user-tags-container">
+                                </div>
+                            <button type="button" class="btn btn-outline-primary btn-sm" id="manage-tags-btn">
+                                <i class="bi bi-tags-fill"></i> จัดการ Tag
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="p-2">
+                        <a href="${data.account.manager_url || '#'}" target="_blank" rel="noopener noreferrer" class="text-muted d-block text-decoration-none" title="Open in LINE Official Account Manager">
+                            @${data.account.name} <i class="bi bi-box-arrow-up-right small"></i>
+                        </a>
+                    </div>
+                </form>
+            `;
+            currentUserTags = data.user.tags; // 1. เก็บ Tag ปัจจุบันไว้ในตัวแปร
+            displayUserTags(data.user.tags);  // 2. เรียกใช้ฟังก์ชันวาด Tag
+
             messagesContainer.innerHTML = '';
             const imagePromises = [];
             data.messages.forEach(msg => { const promise = appendMessage(messagesContainer, msg); if (promise) { imagePromises.push(promise); } });
@@ -783,6 +842,91 @@ document.addEventListener('DOMContentLoaded', function () {
                 // 2. เพิ่ม active class ให้กับรายการที่เพิ่งคลิก
                 userLink.classList.add('active');
             }
+        }
+    });
+
+
+    // เมื่อกดปุ่ม "จัดการ Tag"
+    chatArea.addEventListener('click', function (event) {
+        // ตรวจสอบว่า element ที่ถูกคลิกจริงๆ คือปุ่ม "จัดการ Tag" หรือไม่
+        if (event.target.closest('#manage-tags-btn')) {
+            // ถ้าใช่ ให้เรียกฟังก์ชันเปิด Modal
+            openTagsModal();
+        }
+    });
+
+    // ฟังก์ชันสำหรับเปิด Modal (นำ Logic เดิมมาใส่ในนี้)
+    async function openTagsModal() {
+        if (!currentUserDbId) return;
+
+        try {
+            // 1. ดึง Tag ทั้งหมดในระบบจาก API
+            const response = await fetch('/api/tags');
+            if (!response.ok) throw new Error('Could not fetch tags');
+            const allTags = await response.json();
+
+            // 2. สร้าง Checkbox list
+            const tagsChecklistContainer = document.getElementById('tags-checklist-container');
+            tagsChecklistContainer.innerHTML = ''; // เคลียร์ของเก่า
+
+            allTags.forEach(tag => {
+                const isChecked = currentUserTags.some(userTag => userTag.id === tag.id);
+                const div = document.createElement('div');
+                div.classList.add('form-check');
+                div.innerHTML = `
+                <input class="form-check-input" type="checkbox" value="${tag.id}" id="tag-${tag.id}" ${isChecked ? 'checked' : ''}>
+                <label class="form-check-label" for="tag-${tag.id}">
+                    <span class="badge" style="background-color: ${tag.color}; color: #fff;">${tag.name}</span>
+                </label>
+            `;
+                tagsChecklistContainer.appendChild(div);
+            });
+
+            // 3. เปิด Modal
+            tagsModal.show();
+
+        } catch (error) {
+            console.error("Failed to open tags modal:", error);
+            alert("Could not load tags.");
+        }
+    }
+
+
+    // เมื่อกดปุ่ม "Save changes" ใน Modal
+    saveTagsBtn.addEventListener('click', async () => {
+        if (!currentUserDbId) return;
+
+        const selectedTagIds = Array.from(tagsChecklistContainer.querySelectorAll('input:checked')).map(input => parseInt(input.value));
+        const originalTagIds = currentUserTags.map(tag => tag.id);
+
+        try {
+            // หา Tag ที่ต้องเพิ่ม
+            const tagsToAdd = selectedTagIds.filter(id => !originalTagIds.includes(id));
+            // หา Tag ที่ต้องลบ
+            const tagsToRemove = originalTagIds.filter(id => !selectedTagIds.includes(id));
+
+            // ส่ง API request สำหรับการเพิ่มและลบ
+            for (const tagId of tagsToAdd) {
+                await fetch(`/api/tags/${currentUserDbId}/assign`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tag_id: tagId })
+                });
+            }
+            for (const tagId of tagsToRemove) {
+                await fetch(`/api/tags/${currentUserDbId}/remove/${tagId}`, {
+                    method: 'DELETE'
+                });
+            }
+
+            // โหลดข้อมูล chat ใหม่อีกครั้งเพื่ออัปเดตหน้าจอ
+            await loadChatForUser(currentUserId, currentOaId);
+
+        } catch (error) {
+            console.error("Failed to save tags:", error);
+            alert("An error occurred while saving tags.");
+        } finally {
+            tagsModal.hide(); // ปิด Modal
         }
     });
 

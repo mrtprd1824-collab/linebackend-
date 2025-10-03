@@ -17,6 +17,12 @@ oa_group_association = db.Table('oa_group_association',
     db.Column('oa_group_id', db.Integer, db.ForeignKey('oa_group.id', ondelete="CASCADE"), primary_key=True)
 )
 
+#-- Association Table สำหรับ Tags กับ LineUser (Many-to-Many) ---
+tags_users = db.Table('tags_users',
+    db.Column('line_user_id', db.Integer, db.ForeignKey('line_user.id'), primary_key=True),
+    db.Column('tag_id', db.Integer, db.ForeignKey('tag.id'), primary_key=True)
+)
+
 # --- Models ---
 
 class User(UserMixin, db.Model):
@@ -86,6 +92,12 @@ class LineUser(db.Model):
 
     __table_args__ = (db.UniqueConstraint('line_account_id', 'user_id', name='_line_account_user_uc'),)
 
+    tags = db.relationship('Tag', secondary=tags_users,
+                           backref=db.backref('users', lazy='dynamic'),
+                           lazy='dynamic')
+    last_seen_at = db.Column(db.DateTime)
+    last_message_at = db.Column(db.DateTime, default=datetime.utcnow, index=True) # <-- [เพิ่ม] สำหรับเรียงลำดับ user ที่มีข้อความใหม่
+
     def __repr__(self):
         return f'<LineUser {self.display_name or self.user_id}>'
 
@@ -132,3 +144,12 @@ class Sticker(db.Model):
 
     def __repr__(self):
         return f"Sticker('{self.packageId}', '{self.stickerId}')"
+    
+
+class Tag(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True, nullable=False)
+    color = db.Column(db.String(20), nullable=False, default='#6c757d') # สีเทาเป็นสีเริ่มต้น
+
+    def __repr__(self):
+        return f'<Tag {self.name}>'

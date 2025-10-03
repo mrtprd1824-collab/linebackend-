@@ -671,3 +671,10 @@ body {
   color: var(--main-text-color) !important;
   margin-bottom: 0;
 }
+
+#tag-management-area {
+  display: flex;         /* 1. สั่งให้ของข้างในเรียงตัวแนวนอน */
+  align-items: center; /* 2. จัดให้ปุ่มและแท็กอยู่กึ่งกลางแนวตั้ง */
+  flex-wrap: wrap;     /* 3. ถ้ามีแท็กเยอะเกินไป ให้ขึ้นบรรทัดใหม่ได้ */
+  gap: 8px;            /* 4. สร้างระยะห่างระหว่างแท็กกับปุ่ม */
+}

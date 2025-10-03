@@ -48,6 +48,8 @@ def create_app():
     from .blueprints.quick_replies.routes import bp as quick_replies_bp
     from .blueprints.oa_groups.routes import bp as oa_groups_bp
     from .blueprints.Cron_Job.routes import cron_bp
+    from .blueprints.tags import bp as tags_bp
+    from .blueprints.search import bp as search_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(admin_bp)
@@ -57,6 +59,8 @@ def create_app():
     app.register_blueprint(quick_replies_bp)
     app.register_blueprint(oa_groups_bp)
     app.register_blueprint(cron_bp)
+    app.register_blueprint(tags_bp)
+    app.register_blueprint(search_bp)
 
     @app.get("/_env_check")
     def _env_check():

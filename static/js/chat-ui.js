@@ -148,8 +148,35 @@ function markMessageAsFailed(messageId, errorMessage) {
 
     const errorBadge = document.createElement('div');
     errorBadge.className = 'message-error-badge';
-    errorBadge.textContent = '! ส่งไม่สำเร็จ';
+    errorBadge.textContent = errorMessage || '! ส่งไม่สำเร็จ';
     errorBadge.title = errorMessage || 'ไม่สามารถส่งข้อความนี้ไปยัง LINE ได้';
 
     messageElement.appendChild(errorBadge);
+}
+
+/**
+ * ฟังก์ชันสำหรับแสดง Tag ของผู้ใช้ใน chat header
+ * @param {Array} tags - Array ของ tag objects ที่ได้จาก API
+ */
+function displayUserTags(tags) {
+    const tagsContainer = document.getElementById('user-tags-container');
+    if (!tagsContainer) return; // ออกถ้าหา container ไม่เจอ
+
+    tagsContainer.innerHTML = ''; // ล้างแท็กเก่าออกก่อนเสมอ
+
+    if (tags && tags.length > 0) {
+        tags.forEach(tag => {
+            const tagBadge = document.createElement('span');
+            tagBadge.className = 'badge rounded-pill me-1'; // ใช้ badge ของ Bootstrap
+            
+            // กำหนดสีพื้นหลังและสีตัวอักษร
+            tagBadge.style.backgroundColor = tag.color || '#6c757d'; 
+            tagBadge.style.color = '#fff'; 
+            
+            tagBadge.textContent = tag.name;
+            tagBadge.dataset.tagId = tag.id; // เก็บ ID ของแท็กไว้เผื่อใช้ในอนาคต
+
+            tagsContainer.appendChild(tagBadge);
+        });
+    }
 }
