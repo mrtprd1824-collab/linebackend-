@@ -33,6 +33,10 @@ def search_users_api():
     start_date_str = request.args.get('start_date')
     end_date_str = request.args.get('end_date')
     oa_id = request.args.get('oa_id', type=int)
+    
+        # สร้าง timezone object เตรียมไว้
+    utc_zone = pytz.utc
+    bkk_zone = pytz.timezone('Asia/Bangkok')
 
     # ★★★ สร้าง Query เริ่มต้นที่ Join กับ LineAccount ไว้เลย ★★★
     # เพื่อให้สามารถดึงชื่อ OA มาใช้ได้เสมอ
@@ -65,22 +69,22 @@ def search_users_api():
 
     # --- กรองด้วยวันที่ติดต่อล่าสุด ---
     if start_date_str:
-        start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
-        query = query.filter(LineUser.last_seen_at >= start_date)
+        naive_start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+        bkk_start_time = bkk_zone.localize(naive_start_date)
+        utc_start_time = bkk_start_time.astimezone(pytz.utc)
+        query = query.filter(LineUser.last_message_at >= utc_start_time)
     
     if end_date_str:
-        end_date = datetime.strptime(end_date_str, '%Y-%m-%d') + timedelta(days=1)
-        query = query.filter(LineUser.last_seen_at < end_date)
+        naive_end_date = datetime.strptime(end_date_str, '%Y-%m-%d') + timedelta(days=1)
+        bkk_end_time = bkk_zone.localize(naive_end_date)
+        utc_end_time = bkk_end_time.astimezone(pytz.utc)
+        query = query.filter(LineUser.last_message_at < utc_end_time)
 
-    # --- ส่วนที่เหลือเหมือนเดิม ---
     pagination = query.order_by(LineUser.last_seen_at.desc()).paginate(
         page=page, per_page=20, error_out=False
     )
     users = pagination.items
 
-    # สร้าง timezone object เตรียมไว้
-    utc_zone = pytz.utc
-    bkk_zone = pytz.timezone('Asia/Bangkok')
     
     results = []
     for user in users:
