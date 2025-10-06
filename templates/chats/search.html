@@ -83,16 +83,15 @@
         const searchForm = document.getElementById('search-form');
         const resultsTbody = document.getElementById('results-tbody');
         const paginationContainer = document.getElementById('pagination-container');
-        const exportBtn = document.getElementById('export-btn');
 
-        // --- 1. Fetch all available tags to populate the filter ---
+        // --- 1. Populate Tags Filter ---
         async function populateTagsFilter() {
             try {
                 const response = await fetch('/api/tags');
                 if (!response.ok) throw new Error('Could not fetch tags');
                 const tags = await response.json();
 
-                tagsContainer.innerHTML = ''; // Clear loading text
+                tagsContainer.innerHTML = '';
                 if (tags.length === 0) {
                     tagsContainer.innerHTML = '<p class="text-muted small m-0">No tags created.</p>';
                     return;
@@ -133,7 +132,7 @@
 
             const apiUrl = `/api/search/users?${params.toString()}`;
 
-            resultsTbody.innerHTML = '<tr><td colspan="6" class="text-center"><div class="spinner-border spinner-border-sm" role="status"><span class="visually-hidden">Loading...</span></div></td></tr>';
+            resultsTbody.innerHTML = '<tr><td colspan="6" class="text-center"><div class="spinner-border spinner-border-sm" role="status"></div></td></tr>';
             paginationContainer.innerHTML = '';
 
             try {
@@ -145,20 +144,20 @@
                 renderPagination(data.pagination);
             } catch (error) {
                 console.error("Search failed:", error);
-                resultsTbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger">An error occurred during search.</td></tr>';
+                resultsTbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger">An error occurred.</td></tr>';
             }
         }
 
         searchForm.addEventListener('submit', function (event) {
             event.preventDefault();
-            performSearch(1); // Start search from page 1
+            performSearch(1);
         });
 
         // --- 3. Render Search Results ---
         function renderSearchResults(users) {
             resultsTbody.innerHTML = '';
             if (users.length === 0) {
-                resultsTbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No users found matching your criteria.</td></tr>';
+                resultsTbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No users found.</td></tr>';
                 return;
             }
 
@@ -192,7 +191,6 @@
             const currentPage = pagination.current_page;
             const totalPages = pagination.total_pages;
 
-            // --- Helper function to create a page link ---
             const createPageLink = (page, text, isDisabled = false, isActive = false) => {
                 const li = document.createElement('li');
                 li.className = `page-item ${isDisabled ? 'disabled' : ''} ${isActive ? 'active' : ''}`;
@@ -200,67 +198,44 @@
                 return li;
             };
 
-            // --- Previous Button ---
             ul.appendChild(createPageLink(currentPage - 1, 'Previous', !pagination.has_prev));
 
-            // --- Page Number Logic ---
-            const window = 2; // จำนวนหน้าที่แสดงข้างๆ หน้าปัจจุบัน
+            const window = 2;
             let start = Math.max(2, currentPage - window);
             let end = Math.min(totalPages - 1, currentPage + window);
 
-            // Page 1
             ul.appendChild(createPageLink(1, '1', false, currentPage === 1));
-
-            // Ellipsis at the start
             if (start > 2) {
-                const li = document.createElement('li');
-                li.className = 'page-item disabled';
-                li.innerHTML = `<span class="page-link">...</span>`;
-                ul.appendChild(li);
+                ul.appendChild(createPageLink(0, '...', true));
             }
 
-            // Middle pages
             for (let i = start; i <= end; i++) {
                 ul.appendChild(createPageLink(i, i, false, currentPage === i));
             }
 
-            // Ellipsis at the end
             if (end < totalPages - 1) {
-                const li = document.createElement('li');
-                li.className = 'page-item disabled';
-                li.innerHTML = `<span class="page-link">...</span>`;
-                ul.appendChild(li);
+                ul.appendChild(createPageLink(0, '...', true));
             }
-
-            // Last page (if total > 1)
             if (totalPages > 1) {
                 ul.appendChild(createPageLink(totalPages, totalPages, false, currentPage === totalPages));
             }
 
-            // --- Next Button ---
             ul.appendChild(createPageLink(currentPage + 1, 'Next', !pagination.has_next));
 
             paginationContainer.appendChild(ul);
         }
 
-        exportBtn.addEventListener('click', function () {
-            // ดึงค่าจากฟอร์มมาเหมือนตอนกด Search
-            const query = document.getElementById('search-query').value;
-            const selectedTags = Array.from(document.querySelectorAll('input[name="tags"]:checked')).map(cb => cb.value);
-            const startDate = document.getElementById('search-start-date').value;
-            const endDate = document.getElementById('search-end-date').value;
-            const oaId = document.getElementById('search-oa').value;
+        // ★★★ ส่วนนี้คือส่วนสำคัญที่เพิ่มเข้ามา ★★★
+        // Event Listener สำหรับดักฟังการคลิกที่ปุ่ม Pagination
+        paginationContainer.addEventListener('click', function (event) {
+            event.preventDefault(); // หยุดการทำงานปกติของลิงก์
+            const link = event.target.closest('.page-link'); // หาลิงก์ที่ถูกคลิก
 
-            // สร้าง URL สำหรับ Export โดยใช้เงื่อนไขเดียวกับการค้นหา
-            const params = new URLSearchParams();
-            if (query) params.append('q', query);
-            if (selectedTags.length > 0) params.append('tags', selectedTags.join(','));
-            if (startDate) params.append('start_date', startDate);
-            if (endDate) params.append('end_date', endDate);
-            if (oaId) params.append('oa_id', oaId);
-
-            // สั่งให้เบราว์เซอร์ดาวน์โหลดไฟล์จาก URL ที่สร้างขึ้น
-            window.location.href = `/api/search/users/export?${params.toString()}`;
+            // ตรวจสอบว่าลิงก์นั้นใช้งานได้ (ไม่ใช่ปุ่ม disabled)
+            if (link && !link.closest('.disabled')) {
+                const page = parseInt(link.dataset.page); // ดึงหมายเลขหน้า
+                performSearch(page); // เรียกใช้ฟังก์ชันค้นหาสำหรับหน้าใหม่
+            }
         });
 
         // --- Initial Load ---
