@@ -364,7 +364,11 @@ document.addEventListener('DOMContentLoaded', function () {
         const unreadBadge = (convData.unread_count && convData.unread_count > 0) ? `<span class="badge bg-danger rounded-pill">${convData.unread_count}</span>` : '';
         const timerHTML = `<small class="text-danger me-2 unread-timer" id="timer-${convData.user_id}-${convData.line_account_id}"></small>`;
 
-        newLink.innerHTML = `<img src="${convData.picture_url || defaultAvatar}" alt="Profile" class="rounded-circle me-3" style="width: 50px; height: 50px;"><div class="flex-grow-1"><div class="d-flex w-100 justify-content-between"><strong class="mb-1">${convData.display_name}</strong><div>${timerHTML}${unreadBadge}</div></div><small class="text-muted">@${convData.oa_name}</small><p class="mb-0 text-muted text-truncate small"><span>${convData.last_message_prefix}</span> ${convData.last_message_content}</p></div>`;
+        const truncatedMessage = convData.last_message_content.length > 10
+            ? convData.last_message_content.substring(0, 10) + '...' 
+            : convData.last_message_content;
+
+        newLink.innerHTML = `<img src="${convData.picture_url || defaultAvatar}" alt="Profile" class="rounded-circle me-3" style="width: 50px; height: 50px;"><div class="flex-grow-1"><div class="d-flex w-100 justify-content-between"><strong class="mb-1">${convData.display_name}</strong><div>${timerHTML}${unreadBadge}</div></div><small class="text-muted">@${convData.oa_name}</small><p class="mb-0 text-muted text-truncate small"><span>${convData.last_message_prefix}</span> ${truncatedMessage}</p></div>`;
 
         const timerElement = newLink.querySelector('.unread-timer');
         if (timerElement) {
