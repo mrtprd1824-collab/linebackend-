@@ -275,7 +275,7 @@ def get_messages_for_user(user_id):
 
     user_tags = [{'id': tag.id, 'name': tag.name, 'color': tag.color} for tag in line_user.tags]
     total_messages = LineMessage.query.filter_by(user_id=user_id, line_account_id=oa_id).count()
-    messages_query = LineMessage.query.filter_by(user_id=user_id, line_account_id=oa_id).order_by(LineMessage.timestamp.desc()).limit(10).all()
+    messages_query = LineMessage.query.filter_by(user_id=user_id, line_account_id=oa_id).order_by(LineMessage.timestamp.desc()).limit(20).all()
     messages_query.reverse()
     processed_messages = [format_message_for_api(m) for m in messages_query]
     response_data = {
@@ -287,7 +287,8 @@ def get_messages_for_user(user_id):
             "note": line_user.note or '', 
             "status": line_user.status, 
             "is_blocked": line_user.is_blocked,
-            "tags": user_tags
+            "tags": user_tags,
+            "picture_url": line_user.picture_url
         },
         "account": {"id": account.id, "name": account.name, "manager_url": account.manager_url},
         "messages": processed_messages, 

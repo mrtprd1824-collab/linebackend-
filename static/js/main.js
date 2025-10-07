@@ -86,6 +86,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const tagsModal = new bootstrap.Modal(document.getElementById('tagsModal'));
     const saveTagsBtn = document.getElementById('save-tags-btn');
     const tagsChecklistContainer = document.getElementById('tags-checklist-container');
+    const customerInfoPanel = document.getElementById('customer-info-panel');
+    const infoPlaceholder = customerInfoPanel.querySelector('.info-placeholder');
+    const infoArea = document.getElementById('info-area');
 
 
     // =======================================================
@@ -142,18 +145,23 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // =======================================================
-    // END: REAL-TIME UNREAD TIMER LOGIC
-    // =======================================================
-
-    // 3. EVENT HANDLERS (ฟังก์ชันจัดการ Event)
-
-    // Event เมื่อมีการคลิกที่ปุ่ม Edit Note
-    chatArea.addEventListener('click', function (event) {
+    // --- ★★★ ใช้ Listener ชุดใหม่นี้แทนของเก่า ★★★ ---
+    infoArea.addEventListener('click', function (event) {
+        // จัดการ 3 ปุ่มในที่เดียว: Status, Manage Tags, Edit Note
+        handleStatusButtonClick(event);
+        if (event.target.closest('#manage-tags-btn')) {
+            openTagsModal();
+        }
         if (event.target.closest('#edit-note-btn')) {
-            // ดึง Note ทั้งหมดมาใส่ใน Textarea ของ Modal แล้วเปิด Modal
             fullNoteTextarea.value = currentFullNote;
             noteEditorModal.show();
+        }
+    });
+
+    infoArea.addEventListener('submit', function (event) {
+        // จัดการฟอร์ม Save Info
+        if (event.target.id === 'user-info-form') {
+            handleSaveUserInfo(event);
         }
     });
 
@@ -245,66 +253,69 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
             // (โค้ดส่วน Render ทั้งหมดยาวๆ เหมือนเดิม)
+            // 1. แสดง panel ข้อมูลลูกค้า และซ่อน placeholder
+            infoPlaceholder.classList.add('d-none');
+            infoArea.classList.remove('d-none');
+
+            // 2. สร้าง HTML สำหรับคอลัมน์ข้อมูลลูกค้า
+            infoArea.innerHTML = `
+                <img src="${data.user.picture_url || '/static/images/default-avatar.png'}" 
+                    alt="Profile Picture" 
+                    class="info-profile-pic">
+                <form id="user-info-form">
+                    <h5><i class="bi bi-person-badge"></i> User Info</h5>
+                    <div class="mb-2">
+                        <label for="user-nickname" class="form-label small">Nickname</label>
+                        <input type="text" id="user-nickname" class="form-control form-control-sm" value="${data.user.nickname || ''}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="user-phone" class="form-label small">Phone</label>
+                        <input type="text" id="user-phone" class="form-control form-control-sm" value="${data.user.phone || ''}">
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-success w-100">Save Info</button>
+                </form>
+
+                <h5><i class="bi bi-tag"></i> Status & Tags</h5>
+                <div class="btn-group btn-group-sm w-100 mb-2" role="group">
+                    <button type="button" class="btn btn-outline-success status-btn" data-status="deposit">ฝาก</button>
+                    <button type="button" class="btn btn-outline-warning status-btn" data-status="withdraw">ถอน</button>
+                    <button type="button" class="btn btn-outline-danger status-btn" data-status="issue">ติดปัญหา</button>
+                    <button type="button" class="btn btn-outline-dark status-btn" data-status="closed">ปิดเคส</button>
+                </div>
+                <div id="tag-management-area" class="mb-2">
+                    <div id="user-tags-container"></div>
+                    <button type="button" class="btn btn-outline-primary btn-sm" id="manage-tags-btn">
+                        <i class="bi bi-tags-fill"></i> จัดการ Tag
+                    </button>
+                </div>
+                <a href="/chats/download/${userId}?oa=${oaId}" target="_blank" class="btn btn-sm btn-outline-secondary w-100" title="Download Chat History">
+                    <i class="bi bi-download"></i> Download History
+                </a>
+
+                <h5><i class="bi bi-pencil-square"></i> Note</h5>
+                <textarea id="user-note" class="form-control" rows="5" placeholder="Add a note...">${data.user.note || ''}</textarea>
+            `;
+
+            // 3. สร้าง HTML สำหรับ Chat Header (ทำให้เรียบง่ายขึ้น)
             const chatHeader = document.getElementById('chat-header');
             chatHeader.innerHTML = `
-                <form id="user-info-form">
-                    <div class="p-2 border-bottom">
-                        <div class="row gx-2 align-items-center mb-2">
-                            <div class="col">
-                                <input type="text" id="user-nickname" class="form-control form-control-sm" placeholder="Nickname" value="${data.user.nickname || ''}">
-                            </div>
-                            <div class="col">
-                                <input type="text" id="user-phone" class="form-control form-control-sm" placeholder="Phone" value="${data.user.phone || ''}">
-                            </div>
-                            <div class="col-auto">
-                                <button type="submit" class="btn btn-sm btn-success">Save</button> 
-                                <a href="/chats/download/${userId}?oa=${oaId}" target="_blank" class="btn btn-sm btn-outline-secondary" title="Download Chat History">
-                                    <i class="bi bi-download"></i>
-                                </a>
-                            </div>
-                        </div>
-                        <div class="row gx-2 align-items-center">
-                            <div class="col">
-                                <button type="button" id="edit-note-btn" class="btn btn-outline-secondary btn-sm w-100 text-start">
-                                    <i class="bi bi-pencil-square"></i> 
-                                    <span id="note-preview" class="text-truncate d-inline-block" style="max-width: 80%;">${data.user.note ? data.user.note.replace(/\n/g, ' ') : 'Add a note...'}</span>
-                                </button>
-                            </div>
-                            <div class="col-auto">
-                                <div class="btn-group btn-group-sm" role="group">
-                                    <button type="button" class="btn btn-outline-success status-btn" data-status="deposit">ฝาก</button>
-                                    <button type="button" class="btn btn-outline-warning status-btn" data-status="withdraw">ถอน</button>
-                                    <button type="button" class="btn btn-outline-danger status-btn" data-status="issue">ติดปัญหา</button>
-                                    <button type="button" class="btn btn-outline-dark status-btn" data-status="closed">ปิดเคส</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="p-2 border-bottom">
-                        <div id="tag-management-area">
-                            <div id="user-tags-container">
-                                </div>
-                            <button type="button" class="btn btn-outline-primary btn-sm" id="manage-tags-btn">
-                                <i class="bi bi-tags-fill"></i> จัดการ Tag
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="p-2">
-                        <a href="${data.account.manager_url || '#'}" target="_blank" rel="noopener noreferrer" class="text-muted d-block text-decoration-none" title="Open in LINE Official Account Manager">
-                            @${data.account.name} <i class="bi bi-box-arrow-up-right small"></i>
-                        </a>
-                    </div>
-                </form>
+                <a href="${data.account.manager_url || '#'}" target="_blank" rel="noopener noreferrer" class="text-muted d-block text-decoration-none" title="Open in LINE Official Account Manager">
+                    <i class="bi bi-line"></i> Chatting on: <strong>@${data.account.name}</strong> <i class="bi bi-box-arrow-up-right small"></i>
+                </a>
             `;
+
             currentUserTags = data.user.tags; // 1. เก็บ Tag ปัจจุบันไว้ในตัวแปร
             displayUserTags(data.user.tags);  // 2. เรียกใช้ฟังก์ชันวาด Tag
 
             messagesContainer.innerHTML = '';
             const imagePromises = [];
             data.messages.forEach(msg => { const promise = appendMessage(messagesContainer, msg); if (promise) { imagePromises.push(promise); } });
-            Promise.all(imagePromises).then(() => { messagesContainer.scrollTop = messagesContainer.scrollHeight; });
+            Promise.all(imagePromises).then(() => {
+                // หน่วงคำสั่ง scroll ไปท้ายสุดของ event queue
+                setTimeout(() => {
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                }, 0);
+            });
             const qrResponse = await fetch(`/chats/api/quick_replies/${oaId}`);
             availableQuickReplies = await qrResponse.json();
             const newRoomName = `chat_${userId}_${oaId}`;
@@ -525,12 +536,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function handleImageSelection(event) {
         const file = event.target.files[0];
-        if (file && file.type.startsWith('image/')) {
-            selectedImageFile = file;
-            const reader = new FileReader();
-            reader.onload = (e) => { previewImage.src = e.target.result; imagePreviewModal.show(); }
-            reader.readAsDataURL(file);
-        }
+        processAndPreviewImage(file);
     }
 
     async function handleSendImage() {
@@ -559,6 +565,19 @@ document.addEventListener('DOMContentLoaded', function () {
             // เคลียร์ค่าหลังจากทำงานเสร็จเสมอ
             imageInput.value = '';
             selectedImageFile = null;
+            replyMessageInput.focus();
+        }
+    }
+
+    function processAndPreviewImage(file) {
+        if (file && file.type.startsWith('image/')) {
+            selectedImageFile = file;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewImage.src = e.target.result;
+                imagePreviewModal.show();
+            }
+            reader.readAsDataURL(file);
         }
     }
 
@@ -574,7 +593,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const nickname = document.getElementById('user-nickname').value;
         const phone = document.getElementById('user-phone').value;
         // เราดึง note จากตัวแปรที่เราเก็บไว้ เพื่อไม่ให้ข้อมูลหาย
-        const note = currentFullNote;
+        const note = document.getElementById('user-note').value;
 
         try {
             // เราใช้ Endpoint เดิม แต่ตอนนี้จะส่งแค่ nickname กับ phone ที่เปลี่ยนไป
@@ -605,6 +624,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     Promise.resolve(promise).then(() => {
                         messagesContainer.scrollTop = messagesContainer.scrollHeight;
                     });
+                    replyMessageInput.focus();
                 } else {
                     throw new Error('Failed to process sticker on server');
                 }
@@ -694,7 +714,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (text.length > 0) {
             const searchTerm = text.toUpperCase();
             // --- ปัญหาอยู่ตรงนี้ ---
-            const filteredReplies = availableQuickReplies.filter(r => 
+            const filteredReplies = availableQuickReplies.filter(r =>
                 r.shortcut.toUpperCase().includes(searchTerm));
             if (filteredReplies.length > 0) {
                 populateInlineQuickReply(inlineQrResults, filteredReplies);
@@ -843,14 +863,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
 
-    // เมื่อกดปุ่ม "จัดการ Tag"
-    chatArea.addEventListener('click', function (event) {
-        // ตรวจสอบว่า element ที่ถูกคลิกจริงๆ คือปุ่ม "จัดการ Tag" หรือไม่
-        if (event.target.closest('#manage-tags-btn')) {
-            // ถ้าใช่ ให้เรียกฟังก์ชันเปิด Modal
-            openTagsModal();
-        }
-    });
+
 
     // ฟังก์ชันสำหรับเปิด Modal (นำ Logic เดิมมาใส่ในนี้)
     async function openTagsModal() {
@@ -968,15 +981,8 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    chatArea.addEventListener('click', (event) => {
-        handleStatusButtonClick(event);
-    });
-    // [เพิ่ม] Event Listener สำหรับฟอร์มข้อมูล User โดยเฉพาะ
-    chatArea.addEventListener('submit', function (event) {
-        if (event.target.id === 'user-info-form') {
-            handleSaveUserInfo(event);
-        }
-    });
+
+
 
 
     messagesContainer.addEventListener('scroll', handleScrollToLoadMore);
@@ -1010,28 +1016,16 @@ document.addEventListener('DOMContentLoaded', function () {
             performSearch(e.target.value);
         }, 300);
     });
+    // ★★★ 3. แก้ไข Event Listener ของ paste ให้สั้นลง ★★★
     replyMessageInput.addEventListener('paste', function (event) {
         const items = (event.clipboardData || event.originalEvent.clipboardData).items;
-
         for (let index in items) {
             const item = items[index];
-
-            // ตรวจสอบว่าเป็น "ไฟล์" และเป็น "รูปภาพ" หรือไม่
             if (item.kind === 'file' && item.type.includes('image')) {
-                // หยุดการทำงานปกติของการ paste (ไม่ให้แสดงข้อความแปลกๆ)
                 event.preventDefault();
-
-                // แปลงข้อมูลใน Clipboard ให้กลายเป็นไฟล์
                 const file = item.getAsFile();
-
-                // ใช้ฟังก์ชันเดียวกับตอนเลือกไฟล์มาแสดง Preview
-                selectedImageFile = file;
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    previewImage.src = e.target.result;
-                    imagePreviewModal.show();
-                }
-                reader.readAsDataURL(file);
+                processAndPreviewImage(file);
+                break; // เจอรูปแล้ว หยุดทำงานได้เลย
             }
         }
     });
@@ -1059,5 +1053,40 @@ document.addEventListener('DOMContentLoaded', function () {
     updateUnreadTimers();
     // ตั้งให้ทำงานทุกๆ 1 วินาที
     setInterval(updateUnreadTimers, 1000);
+
+    // ★★★ 4. เพิ่มโค้ด Drag and Drop ทั้งหมดนี้เข้าไป ★★★
+
+    const chatInputArea = document.querySelector('.chat-input');
+
+    // Event 1: เมื่อลากไฟล์เข้ามาในพื้นที่เป้าหมาย
+    chatInputArea.addEventListener('dragenter', (event) => {
+        event.preventDefault();
+        chatInputArea.classList.add('drag-over');
+    });
+
+    // Event 2: เมื่อลากไฟล์ค้างไว้เหนือพื้นที่เป้าหมาย (สำคัญมาก)
+    chatInputArea.addEventListener('dragover', (event) => {
+        event.preventDefault(); // ป้องกันไม่ให้เบราว์เซอร์เปิดไฟล์เอง
+        chatInputArea.classList.add('drag-over');
+    });
+
+    // Event 3: เมื่อลากไฟล์ออกจากพื้นที่เป้าหมาย
+    chatInputArea.addEventListener('dragleave', (event) => {
+        chatInputArea.classList.remove('drag-over');
+    });
+
+    // Event 4: เมื่อปล่อยไฟล์ลงในพื้นที่เป้าหมาย (หัวใจหลัก)
+    chatInputArea.addEventListener('drop', (event) => {
+        event.preventDefault(); // ป้องกันไม่ให้เบราว์เซอร์เปิดไฟล์เอง
+        chatInputArea.classList.remove('drag-over');
+
+        const files = event.dataTransfer.files;
+        if (files.length > 0) {
+            // ดึงไฟล์แรกที่ลากมา
+            const file = files[0];
+            // ส่งไปให้ฟังก์ชันกลางที่เราสร้างไว้จัดการต่อ
+            processAndPreviewImage(file);
+        }
+    });
 
 });

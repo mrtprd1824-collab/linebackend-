@@ -26,12 +26,13 @@ body {
 
 /* --- ส่วนที่เหลือปรับปรุงเล็กน้อย แต่โครงสร้างเหมือนเดิม --- */
 
+/* คอลัมน์ 1: รายชื่อ (ปรับเล็กน้อย) */
 .user-list-panel {
-  width: 30%;
-  min-width: 280px;
-  border-right: 1px solid #dee2e6;
-  display: flex;
-  flex-direction: column;
+    flex: 0 0 320px; /* กำหนดความกว้างคงที่ 320px */
+    border-right: 1px solid var(--main-border);
+    display: flex;
+    flex-direction: column;
+    background-color: var(--component-bg);
 }
 
 .user-list-header {
@@ -44,11 +45,36 @@ body {
   flex-grow: 1;
 }
 
+/* คอลัมน์ 2: ห้องแชท (ปรับขนาด) */
 .chat-window-panel {
-  width: 70%;
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
+    flex: 1; /* ให้ยืดขยายเต็มพื้นที่ที่เหลือ */
+    display: flex;
+    flex-direction: column;
+}
+
+/* คอลัมน์ 3: ข้อมูลลูกค้า (เพิ่มใหม่ทั้งหมด) */
+.customer-info-panel {
+    flex: 0 0 280px; /* กำหนดความกว้างคงที่ 280px */
+    border-left: 1px solid var(--main-border);
+    background-color: var(--component-alt-bg);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+#info-area {
+    padding: 1rem;
+}
+
+/* แต่งสไตล์หัวข้อใน Panel ข้อมูลลูกค้า */
+.info-area h5 {
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: var(--muted-text);
+    margin-top: 1.2rem;
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid var(--main-border);
+    padding-bottom: 0.3rem;
 }
 
 .chat-placeholder {
@@ -677,4 +703,24 @@ body {
   align-items: center; /* 2. จัดให้ปุ่มและแท็กอยู่กึ่งกลางแนวตั้ง */
   flex-wrap: wrap;     /* 3. ถ้ามีแท็กเยอะเกินไป ให้ขึ้นบรรทัดใหม่ได้ */
   gap: 8px;            /* 4. สร้างระยะห่างระหว่างแท็กกับปุ่ม */
+}
+
+/* Style สำหรับรูปโปรไฟล์ใน Panel ข้อมูลลูกค้า */
+.info-profile-pic {
+  width: 80px;            /* ความกว้าง */
+  height: 80px;           /* ความสูง */
+  border-radius: 50%;     /* ทำให้เป็นวงกลม */
+  object-fit: cover;      /* ทำให้รูปภาพพอดีกับกรอบ โดยไม่เสียสัดส่วน */
+  display: block;         /* ทำให้จัดกลางด้วย margin auto ได้ */
+  margin: 0 auto 1rem;    /* จัดให้อยู่กลางแนวนอน และเว้นระยะห่างด้านล่าง */
+  border: 3px solid #fff; /* เพิ่มขอบสีขาวเล็กน้อย */
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* เพิ่มเงาให้ดูมีมิติ */
+}
+
+/* Style สำหรับกล่องพิมพ์ข้อความตอนที่ลากไฟล์มาทับ */
+.chat-input.drag-over {
+  /* เพิ่มเส้นขอบประสีน้ำเงินที่เด่นชัด */
+  border: 3px dashed #0d6efd !important; 
+  /* เปลี่ยนสีพื้นหลังเล็กน้อย */
+  background-color: #e9f0fc !important;
 }
