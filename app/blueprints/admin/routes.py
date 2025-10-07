@@ -40,7 +40,6 @@ def manage_users():
     users = User.query.all()
     return render_template("manage_users.html", users=users)
 
-# add users
 @bp.route("/users/add", methods=["POST"])
 @login_required
 @admin_required
@@ -57,11 +56,6 @@ def add_user():
         email=email,
         role=role
     )
-
-    if role == 'admin':
-        new_user.is_admin = True
-    else:
-        new_user.is_admin = False
 
     new_user.set_password(password)
     
