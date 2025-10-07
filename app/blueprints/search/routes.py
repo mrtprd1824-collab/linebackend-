@@ -80,7 +80,7 @@ def search_users_api():
         utc_end_time = bkk_end_time.astimezone(pytz.utc)
         query = query.filter(LineUser.last_message_at < utc_end_time)
 
-    pagination = query.order_by(LineUser.last_seen_at.desc()).paginate(
+    pagination = query.order_by(LineUser.last_message_at.desc()).paginate(
         page=page, per_page=20, error_out=False
     )
     users = pagination.items
