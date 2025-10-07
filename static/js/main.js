@@ -693,12 +693,9 @@ document.addEventListener('DOMContentLoaded', function () {
         const text = e.target.value;
         if (text.length > 0) {
             const searchTerm = text.toUpperCase();
-            // --- แก้ไขโดยเพิ่ม || r.message.toUpperCase().includes(searchTerm) ---
-            const filteredReplies = availableQuickReplies.filter(r =>
-                r.shortcut.toUpperCase().includes(searchTerm) ||
-                r.message.toUpperCase().includes(searchTerm)
-            );
-
+            // --- ปัญหาอยู่ตรงนี้ ---
+            const filteredReplies = availableQuickReplies.filter(r => 
+                r.shortcut.toUpperCase().includes(searchTerm));
             if (filteredReplies.length > 0) {
                 populateInlineQuickReply(inlineQrResults, filteredReplies);
                 inlineQrResults.style.display = 'block';
