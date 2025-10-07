@@ -30,13 +30,21 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False) # unique=True สร้าง index ให้อยู่แล้ว
     password_hash = db.Column(db.String(256), nullable=False)
     role = db.Column(db.String(20), default="user", nullable=False, index=True) # <-- [เพิ่ม] เผื่อมีการกรอง user ตาม role
-    is_admin = db.Column(db.Boolean, default=False, nullable=False)
+    #is_admin = db.Column(db.Boolean, default=False, nullable=False)
+    is_active = db.Column(db.Boolean, nullable=False, server_default='true')
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+    
+    @property
+    def is_admin(self):
+        """ตรวจสอบว่าผู้ใช้เป็นแอดมินหรือไม่ จากคอลัมน์ role (Case-Insensitive)"""
+        if self.role: # เพิ่มการตรวจสอบเผื่อ role เป็น None
+            return self.role.lower() == 'admin'
+        return False
 
 class OAGroup(db.Model):
     id = db.Column(db.Integer, primary_key=True)

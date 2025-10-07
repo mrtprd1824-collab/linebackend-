@@ -14,17 +14,21 @@ from flask_socketio import join_room
 
 bp = Blueprint("admin", __name__, url_prefix="/admin")
 
-# decorator สำหรับเช็คสิทธิ์ admin
+# decorator สำหรับเช็คสิทธิ์ admin (ฉบับแก้ไขสมบูรณ์)
 def admin_required(func):
     from functools import wraps
     @wraps(func)
     def decorated_view(*args, **kwargs):
+        is_admin_check = False # กำหนดค่าเริ่มต้น
         if current_user.is_authenticated:
-            print(f"--- DEBUG: Checking role for user '{current_user.email}'. Actual role is: '{current_user.role}' ---")
-
-        if not current_user.is_authenticated or current_user.role != "admin":
+            # ใช้ .lower() เพื่อแปลง role เป็นตัวพิมพ์เล็กก่อนเปรียบเทียบ
+            is_admin_check = current_user.role.lower() == 'admin' if current_user.role else False
+        
+        if not current_user.is_authenticated or not is_admin_check:
             flash("You do not have permission to access this page.", "danger")
-            return redirect(url_for("auth.login"))
+            return redirect(url_for("auth.dashboard")) 
+        
+        # ★★★ แก้ไข angs เป็น args ตรงนี้ครับ ★★★
         return func(*args, **kwargs)
     return decorated_view
 
@@ -65,6 +69,39 @@ def add_user():
     db.session.commit()
     flash('User added successfully!', 'success')
     return redirect(url_for('admin.manage_users'))
+
+@bp.route('/users/toggle-active/<int:user_id>', methods=['POST'])
+@login_required
+@admin_required 
+def toggle_user_active(user_id):
+    user = User.query.get_or_404(user_id)
+    # สลับค่า True/False
+    user.is_active = not user.is_active
+    db.session.commit()
+    flash(f'User "{user.email}" status has been updated.', 'success')
+    return jsonify({'success': True, 'is_active': user.is_active})
+
+
+# ★★★ เพิ่ม 2: Route สำหรับแก้ไขข้อมูล User ★★★
+@bp.route('/users/edit/<int:user_id>', methods=['POST'])
+@login_required
+@admin_required
+def edit_user(user_id):
+    user = User.query.get_or_404(user_id)
+    new_password = request.form.get('password')
+    new_role = request.form.get('role')
+
+    if new_password:
+        # สมมติว่าคุณมี method .set_password() ใน Model User สำหรับ hash รหัสผ่าน
+        user.set_password(new_password)
+        flash('Password updated successfully.', 'success')
+
+    if new_role and new_role in ['Admin', 'User']: # ตรวจสอบค่า Role ที่ส่งมา
+        user.role = new_role
+        flash('Role updated successfully.', 'success')
+    
+    db.session.commit()
+    return redirect(url_for('admin.manage_users')) # กลับไปที่หน้ารายชื่อ User
 
 # Delete Users
 @bp.route('/users/delete/<int:user_id>', methods=['POST']) # <--- [เพิ่ม] ส่วนนี้เข้าไป
