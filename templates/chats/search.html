@@ -60,6 +60,7 @@
                     <th>User ID</th>
                     <th>Line OA</th>
                     <th>Last Seen (Bangkok)</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody id="results-tbody">
@@ -72,6 +73,32 @@
 
     <nav id="pagination-container" aria-label="Page navigation"></nav>
 </div>
+
+<div class="modal fade" id="quick-send-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-send-fill me-2"></i>Send Quick Message
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-2">
+                    To: <strong id="quick-send-recipient"></strong>
+                </p>
+                <textarea id="quick-send-textarea" class="form-control" rows="5"
+                    placeholder="Type your message..."></textarea>
+                <div id="quick-send-status" class="mt-2 small"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="quick-send-btn">Send Message</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
@@ -157,7 +184,7 @@
         function renderSearchResults(users) {
             resultsTbody.innerHTML = '';
             if (users.length === 0) {
-                resultsTbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No users found.</td></tr>';
+                resultsTbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No users found.</td></tr>';
                 return;
             }
 
@@ -172,10 +199,22 @@
                 <td>${tagsHtml || '-'}</td>
                 <td>${user.nickname || user.display_name || 'Unknown'}</td>
                 <td>${user.phone || '-'}</td>
+                
                 <td><small class="text-muted">${user.user_id}</small></td>
+
                 <td>${user.line_oa_name}</td>
                 <td>${user.last_seen_at}</td>
-            `;
+                <td>
+                    <button class="btn btn-sm btn-outline-primary open-quick-send-modal" 
+                            data-bs-toggle="modal" 
+                            data-bs-target="#quick-send-modal"
+                            data-userid="${user.user_id}" 
+                            data-oaid="${user.line_account_id}"
+                            data-displayname="${user.nickname || user.display_name}">
+                        <i class="bi bi-send"></i> Send
+                    </button>
+                </td>
+                `;
                 resultsTbody.appendChild(row);
             });
         }
@@ -235,6 +274,78 @@
             if (link && !link.closest('.disabled')) {
                 const page = parseInt(link.dataset.page); // ดึงหมายเลขหน้า
                 performSearch(page); // เรียกใช้ฟังก์ชันค้นหาสำหรับหน้าใหม่
+            }
+        });
+
+        // --- A. โค้ดสำหรับส่งข้อมูล User ไปให้ Modal ตอนที่กำลังจะเปิด ---
+        const quickSendModal = document.getElementById('quick-send-modal');
+        quickSendModal.addEventListener('show.bs.modal', function (event) {
+            // ดึงปุ่มที่ถูกคลิก
+            const button = event.relatedTarget;
+
+            // ดึงข้อมูลจาก data-* attributes ของปุ่ม
+            const userId = button.dataset.userid;
+            const oaId = button.dataset.oaid;
+            const displayName = button.dataset.displayname;
+
+            // นำข้อมูลไปใส่ใน Modal
+            const modalRecipient = quickSendModal.querySelector('#quick-send-recipient');
+            modalRecipient.textContent = displayName;
+
+            // เก็บ ID ไว้กับปุ่ม Send ใน Modal เพื่อใช้ตอนส่งข้อความ
+            const sendBtn = quickSendModal.querySelector('#quick-send-btn');
+            sendBtn.dataset.userid = userId;
+            sendBtn.dataset.oaid = oaId;
+
+            // เคลียร์ข้อความเก่าและสถานะ
+            quickSendModal.querySelector('#quick-send-textarea').value = '';
+            quickSendModal.querySelector('#quick-send-status').innerHTML = '';
+            sendBtn.disabled = false;
+        });
+
+        // --- B. โค้ดสำหรับจัดการการกดปุ่ม "Send Message" ใน Modal ---
+        const sendBtn = document.getElementById('quick-send-btn');
+        sendBtn.addEventListener('click', async function () {
+            const userId = sendBtn.dataset.userid;
+            const oaId = sendBtn.dataset.oaid;
+            const messageText = document.getElementById('quick-send-textarea').value.trim();
+            const statusDiv = document.getElementById('quick-send-status');
+
+            if (!messageText) {
+                statusDiv.innerHTML = '<span class="text-danger">Please enter a message.</span>';
+                return;
+            }
+
+            sendBtn.disabled = true; // ปิดปุ่มกันการกดซ้ำ
+            statusDiv.innerHTML = '<span class="text-muted">Sending...</span>';
+
+            try {
+                // ใช้ API Endpoint สำหรับส่งข้อความที่คุณมีอยู่แล้ว
+                const response = await fetch('/chats/api/send_message', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: userId,
+                        oa_id: oaId,
+                        message: messageText
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to send message.');
+                }
+
+                statusDiv.innerHTML = '<span class="text-success">Message sent successfully!</span>';
+
+                // หน่วงเวลาเล็กน้อยแล้วปิด Modal
+                setTimeout(() => {
+                    bootstrap.Modal.getInstance(quickSendModal).hide();
+                }, 1200);
+
+            } catch (error) {
+                console.error("Quick send failed:", error);
+                statusDiv.innerHTML = '<span class="text-danger">Error: Could not send message.</span>';
+                sendBtn.disabled = false; // เปิดปุ่มให้ลองใหม่
             }
         });
 

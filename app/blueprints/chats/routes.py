@@ -192,40 +192,32 @@ def index():
 @bp.route("/<user_id>", endpoint="show")
 @login_required
 def show(user_id):
-    oa_id = request.args.get("oa", type=int)
+    """
+    Route สำหรับเปิดหน้าแชทของ user ที่ต้องการโดยตรง (เวอร์ชันปรับปรุง)
+    """
+    # ดึง oa_id จาก URL query parameter
+    oa_id = request.args.get("oa_id", type=int)
     if not oa_id:
-        abort(400, "Bad Request: Missing 'oa' parameter in the URL.")
-    account = LineAccount.query.get_or_404(oa_id)
+        abort(400, "Bad Request: Missing 'oa_id' parameter.")
 
-    offset = request.args.get("offset", 0, type=int)
-    limit = 10
+    # ตรวจสอบว่า user มีอยู่จริงหรือไม่ (ไม่จำเป็นต้องทำอะไร แค่เช็ค)
+    user_exists = LineUser.query.filter_by(user_id=user_id, line_account_id=oa_id).first()
+    if not user_exists:
+        flash(f"User with ID {user_id} not found.", "warning")
+        return redirect(url_for('chats.index'))
 
-    query = LineMessage.query.filter_by(user_id=user_id, line_account_id=oa_id)
-    total_messages = query.count()
-
-    messages = (
-        query.order_by(LineMessage.timestamp.desc())
-        .offset(offset)
-        .limit(limit)
-        .all()
-    )
-    messages = list(reversed(messages))
-
-    processed_messages = [format_message_for_api(m) for m in messages]
-    quick_replies = QuickReply.query.order_by(QuickReply.created_at.desc()).all()
-    line_user = LineUser.query.filter_by(user_id=user_id, line_account_id=oa_id).first()
-
+    # เราจะ render template หลัก 'index.html' เหมือนเดิม
+    # แต่ส่งค่าที่จำเป็นพื้นฐานไปให้ครบ เพื่อไม่ให้ template error
+    # และที่สำคัญคือส่ง user_id_to_load และ oa_id_to_load ไปด้วย
     return render_template(
-        "chats/show.html",
-        account=account,
-        user_id=user_id,
-        messages=processed_messages,
-        oa_id=oa_id,
-        offset=offset,
-        limit=limit,
-        total_messages=total_messages,
-        quick_replies=quick_replies,
-        line_user=line_user
+        "chats/index.html",
+        conversations=[], # ส่งลิสต์ว่างไป เพราะหน้านี้จะแสดงแค่คนเดียว
+        pagination=None,    # ไม่มี pagination ในหน้านี้
+        all_groups=OAGroup.query.order_by(OAGroup.name).all(),
+        selected_group_ids=session.get("active_group_ids", []),
+        status_filter='all',
+        user_id_to_load=user_id, # ★★★ ส่ง ID ของ user ที่ต้องการโหลด
+        oa_id_to_load=oa_id      # ★★★ ส่ง ID ของ OA ที่ต้องการโหลด
     )
 
 @bp.route("/api/messages/<user_id>")
