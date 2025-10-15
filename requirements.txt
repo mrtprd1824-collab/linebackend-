@@ -19,3 +19,5 @@ WTForms==3.1.2
 WTForms-SQLAlchemy==0.3
 pytz==2024.1
 psycopg2-binary
+gunicorn
+eventlet
