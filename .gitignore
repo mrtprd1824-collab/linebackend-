@@ -13,3 +13,6 @@ instance/
 
 # SQLite database file (if you have one locally)
 *.db
+.coverage
+temp_plain.py
+temp_socketio.py
