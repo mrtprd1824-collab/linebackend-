@@ -1,13 +1,13 @@
+import eventlet
+eventlet.monkey_patch(thread=False)
+# ★★★ จบส่วนที่เพิ่ม ★★★
+
 import os
 import click
 from werkzeug.security import generate_password_hash
 
-# ★★★ แก้ไขการ import ตรงนี้ ★★★
-# เราจะ import แค่ create_app จาก app และ import ส่วนอื่นๆ จาก extensions
 from app import create_app
 from app.extensions import db, socketio
-# ★★★ จบส่วนแก้ไขการ import ★★★
-
 from app.models import User
 
 app = create_app()
