@@ -44,10 +44,10 @@ def test_lineaccount_crud(app):
     if "name" in {c.key for c in mapper.columns}:
         la.name = "Updated"
         db.session.commit()
-        la2 = LineAccount.query.get(pk)
+        la2 = db.session.get(LineAccount, pk)
         assert la2.name == "Updated"
 
     # delete
     db.session.delete(la)
     db.session.commit()
-    assert LineAccount.query.get(pk) is None
+    assert db.session.get(LineAccount, pk) is None
