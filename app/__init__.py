@@ -5,7 +5,6 @@ from datetime import timedelta
 from flask_login import current_user
 from config import Config
 from .extensions import db, migrate, login_manager, socketio  # รวมบรรทัดเดียว
-from .models import LineAccount
 
 
 
@@ -79,6 +78,7 @@ def create_app():
 
     @app.context_processor
     def inject_global_notifications():
+        from .models import LineAccount
         """
         ส่งข้อมูลแจ้งเตือนที่ต้องใช้ทุกหน้าไปยัง Templates
         """

@@ -5,7 +5,6 @@ eventlet.monkey_patch(thread=False)
 import os
 import click
 from werkzeug.security import generate_password_hash
-
 from app import create_app
 from app.extensions import db, socketio
 from app.models import User
@@ -35,5 +34,5 @@ def create_admin(email, password):
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    # ใช้ use_reloader=False เพื่อให้ทำงานกับ eventlet ได้อย่างเสถียร
+    # ★★★ เพิ่ม use_reloader=False เข้าไปเพื่อปิดการใช้งาน reloader ที่ขัดแย้งกับ eventlet ★★★
     socketio.run(app, host='0.0.0.0', port=port, debug=True, use_reloader=False)
