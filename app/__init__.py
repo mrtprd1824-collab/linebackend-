@@ -35,7 +35,12 @@ def create_app():
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
-    socketio.init_app(app, async_mode="gevent")
+    use_eventlet = os.environ.get("USE_EVENTLET", "1") == "1"
+
+    if use_eventlet:
+        socketio.init_app(app, async_mode="eventlet")
+    else:
+        socketio.init_app(app, async_mode="threading")
 
     # ให้ Alembic เห็น models
     from . import models

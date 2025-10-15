@@ -7,4 +7,4 @@ db = SQLAlchemy()
 migrate = Migrate()
 login_manager = LoginManager()
 login_manager.login_view = "auth.login"
-socketio = SocketIO(async_mode='gevent', cors_allowed_origins="*")
+socketio = SocketIO(cors_allowed_origins="*")

@@ -1,38 +1,20 @@
 import eventlet
-eventlet.monkey_patch(thread=False)
-# ★★★ จบส่วนที่เพิ่ม ★★★
+eventlet.monkey_patch()
+print("1 monkey patched", flush=True)
 
-import os
-import click
-from werkzeug.security import generate_password_hash
+# หลังจากนี้บรรทัด import อื่น ๆ
+print("2 before imports", flush=True)
 from app import create_app
-from app.extensions import db, socketio
-from app.models import User
-
+print("3 after import create_app", flush=True)
+print("4 calling create_app", flush=True)
 app = create_app()
+print("5 app created", flush=True)
 
-@app.cli.command("create-admin")
-@click.argument("email")
-@click.argument("password")
-def create_admin(email, password):
-    """สร้างผู้ใช้งานแอดมินคนแรก"""
-    if User.query.filter_by(email=email).first():
-        print(f"Error: อีเมล '{email}' มีอยู่ในระบบแล้ว")
-        return
-
-    new_admin = User(
-        email=email,
-        password_hash=generate_password_hash(password, method='pbkdf2:sha256'),
-        is_admin=True
-    )
-
-    db.session.add(new_admin)
-    db.session.commit()
-
-    print(f"สร้างแอดมิน '{email}' เรียบร้อยแล้ว")
-
+# ถ้ามี socketio import
+from app.extensions import socketio
+print("6 imported socketio", flush=True)
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    # ★★★ เพิ่ม use_reloader=False เข้าไปเพื่อปิดการใช้งาน reloader ที่ขัดแย้งกับ eventlet ★★★
-    socketio.run(app, host='0.0.0.0', port=port, debug=True, use_reloader=False)
+    print("7 about to run socketio", flush=True)
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True, use_reloader=False)
+    print("8 socketio returned (should not reach)", flush=True)
