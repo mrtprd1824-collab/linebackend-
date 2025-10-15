@@ -20,19 +20,39 @@
         </div>
 
         <div class="p-2 border-bottom">
-            <input type="text" id="user-search-input" class="form-control form-control-sm"
-                placeholder="Search by Nickname, Phone, User ID...">
+            <div class="input-group">
+                <input type="text" id="user-search-input" class="form-control form-control-sm"
+                    placeholder="Search by Nickname, Phone, User ID...">
+                <button class="btn btn-outline-secondary btn-sm" type="button" id="user-search-btn">Search</button>
+            </div>
         </div>
 
-        <div class="p-2 border-bottom">
-            <select class="form-select form-select-sm" id="status-filter"
-                onchange="window.location.href = '/chats/?status_filter=' + this.value;">
-                <option value="all" {% if status_filter=='all' %}selected{% endif %}>ทั้งหมด</option>
-                <option value="deposit" {% if status_filter=='deposit' %}selected{% endif %}>ฝาก</option>
-                <option value="withdraw" {% if status_filter=='withdraw' %}selected{% endif %}>ถอน</option>
-                <option value="issue" {% if status_filter=='issue' %}selected{% endif %}>ติดปัญหา</option>
-            </select>
+        <div class="p-2 border-bottom bg-body"> {# ★★★ 1. เพิ่ม bg-body เพื่อให้พื้นหลังเป็นสีขาว/ดำ ตามธีม ★★★ #}
+            <div class="btn-group btn-group-sm w-100" role="group">
+
+                <input type="radio" class="btn-check" name="statusFilterRadio" id="statusAll" value="all"
+                    autocomplete="off" {% if status_filter=='all' %}checked{% endif %}>
+                <label class="btn btn-outline-primary flex-fill" for="statusAll">ทั้งหมด</label> {# ★★★ 2. เพิ่ม
+                flex-fill ★★★ #}
+
+                <input type="radio" class="btn-check" name="statusFilterRadio" id="statusDeposit" value="deposit"
+                    autocomplete="off" {% if status_filter=='deposit' %}checked{% endif %}>
+                <label class="btn btn-outline-success flex-fill" for="statusDeposit">ฝาก</label> {# ★★★ 2. เพิ่ม
+                flex-fill ★★★ #}
+
+                <input type="radio" class="btn-check" name="statusFilterRadio" id="statusWithdraw" value="withdraw"
+                    autocomplete="off" {% if status_filter=='withdraw' %}checked{% endif %}>
+                <label class="btn btn-outline-warning flex-fill" for="statusWithdraw">ถอน</label> {# ★★★ 2. เพิ่ม
+                flex-fill ★★★ #}
+
+                <input type="radio" class="btn-check" name="statusFilterRadio" id="statusIssue" value="issue"
+                    autocomplete="off" {% if status_filter=='issue' %}checked{% endif %}>
+                <label class="btn btn-outline-danger flex-fill" for="statusIssue">ติดปัญหา</label> {# ★★★ 2. เพิ่ม
+                flex-fill ★★★ #}
+
+            </div>
         </div>
+
         <ul class="list-group user-list-items" id="user-list">
             {% for conv in conversations %}
             {% set msg = conv.message %}
@@ -42,34 +62,53 @@
                 data-userid="{{ msg.user_id }}" data-oaid="{{ msg.line_account_id }}" {# --- แก้ไข 3 บรรทัดนี้ --- #} {%
                 if user.status=='unread' %} data-unread-timestamp="{{ conv.last_unread_timestamp }}" {% endif %}>
 
-                <img src="{{ user.picture_url or url_for('static', filename='images/default-avatar.png') }}"
-                    alt="Profile" class="rounded-circle me-3" style="width: 50px; height: 50px;">
+                <img src="{{ user.picture_url or url_for('static', filename='images/No_profile.png') }}" alt="Profile"
+                    class="rounded-circle me-3" style="width: 50px; height: 50px;">
 
                 <div class="flex-grow-1">
                     <div class="d-flex w-100 justify-content-between">
-                        <strong class="mb-1">{{ user.nickname or user.display_name or msg.user_id[:12] }}</strong>
-                        <small class="text-danger me-2 unread-timer"
-                            id="timer-{{ msg.user_id }}-{{ msg.line_account_id }}"></small>
-                        {% if conv.unread_count > 0 %}
-                        <span class="badge bg-danger rounded-pill">{{ conv.unread_count }}</span>
-                        {% endif %}
+                        <strong class="mb-1">{{ conv.user.nickname or conv.user.display_name }}</strong>
+                        <div>
+                            <small class="text-danger me-2 unread-timer"
+                                id="timer-{{ conv.user.user_id }}-{{ conv.user.line_account_id }}"></small>
+                            {% if conv.unread_count > 0 %}
+                            <span class="badge bg-danger rounded-pill">{{ conv.unread_count }}</span>
+                            {% endif %}
+                        </div>
                     </div>
 
-                    <small class="text-muted">@{{ msg.line_account.name }}</small>
-                    <div class="sidebar-tags-container mt-1">
-                        {% for tag in conv.tags %}
-                        <span class="badge rounded-pill"
-                            style="background-color: {{ tag.color }}; color: #fff; font-size: 0.65em;">
-                            {{ tag.name }}
-                        </span>
-                        {% endfor %}
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <small class="text-muted me-2">@{{ conv.message.line_account.name }}</small>
+                            {% for tag in conv.tags %}
+                            <span class="badge me-1"
+                                style="background-color: {{ tag.color }}; color: white; font-size: 0.65em;">{{
+                                tag.name }}</span>
+                            {% endfor %}
+                        </div>
+                        <small class="text-muted" data-iso-timestamp="{{ conv.last_message_iso_timestamp }}"></small>
                     </div>
-                    
-                    <p class="mb-0 text-muted text-truncate small">
-                        {% if msg.is_outgoing %} <span class="text-primary">คุณ:</span>
-                        {% else %} ลูกค้า: {% endif %}
-                        {% if msg.message_type == 'text' %} {{ msg.message_text | truncate(10) }}
-                        {% else %} [{{ msg.message_type.capitalize() }}] {% endif %}
+
+                    <p class="mb-0 text-muted small sidebar-last-message">
+                        <span class="message-preview">
+                            {% if conv.message.is_outgoing %}
+                            <span>คุณ:</span>
+                            {% else %}
+                            <span>ลูกค้า:</span>
+                            {% endif %}
+
+                            {% if conv.message.message_type == 'text' %}
+                            {{ conv.message.message_text | truncate(10) }}
+                            {% elif conv.message.message_type == 'event' %}
+                            {{ conv.message.message_text | truncate(10) }}
+                            {% else %}
+                            [{{ conv.message.message_type | capitalize }}]
+                            {% endif %}
+                        </span>
+
+                        {% if conv.read_by %}
+                        <small class="text-muted read-by-badge">{{ conv.read_by }}</small>
+                        {% endif %}
                     </p>
                 </div>
             </a>
@@ -137,7 +176,7 @@
         </div>
 
         <div id="info-area" class="d-none">
-            </div>
+        </div>
     </div>
 
     <div class="modal fade" id="quickReplyModal" tabindex="-1" aria-hidden="true">
@@ -171,12 +210,10 @@
         </div>
     </div>
 
-    <div class="modal fade" id="imageViewModal" tabindex="-1" aria-labelledby="imageViewModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal fade" id="imageViewModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
             <div class="modal-content">
-                <div class="modal-body text-center">
-                    <img id="full-image-view" src="#" class="img-fluid" alt="Full image view">
-                </div>
+                <img src="" id="full-image-view" class="img-fluid">
             </div>
         </div>
     </div>
@@ -239,16 +276,42 @@
     </div>
 </div>
 
-    {% endblock %}
+{% endblock %}
 
-    {% block scripts %}
-    {{ super() }}
+{% block scripts %}
+{{ super() }}
 
-    <script id="server-data" type="application/json">
-        {{ {'current_user_email': current_user.email if current_user.is_authenticated else ''} | tojson }}
-    </script>
+<script id="server-data" type="application/json">{{ server_data | safe }}</script>
+<script src="{{ url_for('static', filename='js/chat-ui.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/chat-api.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
 
-    <script src="{{ url_for('static', filename='js/chat-ui.js') }}" defer></script>
-    <script src="{{ url_for('static', filename='js/chat-api.js') }}" defer></script>
-    <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
-    {% endblock %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // 1. ค้นหาปุ่ม Radio ทั้งหมดที่เราเพิ่งสร้าง
+        const statusRadios = document.querySelectorAll('input[name="statusFilterRadio"]');
+
+        // 2. เพิ่ม Event Listener ให้กับทุกปุ่ม
+        statusRadios.forEach(function (radio) {
+            radio.addEventListener('change', function () {
+                // 3. เมื่อมีการเปลี่ยนแปลง (กดปุ่มใหม่)
+                const selectedValue = this.value;
+                // 4. สั่งให้เปลี่ยนหน้าไปยัง URL ใหม่พร้อมกับ filter ที่เลือก
+                window.location.href = `/chats/?status_filter=${selectedValue}`;
+            });
+        });
+        function initialTimestampFormatting() {
+            const timeElements = document.querySelectorAll('[data-iso-timestamp]');
+            timeElements.forEach(el => {
+                const isoString = el.dataset.isoTimestamp;
+                if (isoString) {
+                    // ตอนนี้มันจะเรียกใช้ฟังก์ชันที่อยู่นอกสุดของ main.js ได้แล้ว
+                    el.textContent = formatSidebarTimestamp(isoString);
+                }
+            });
+        }
+        initialTimestampFormatting();
+    });
+</script>
+
+{% endblock %}

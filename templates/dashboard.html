@@ -14,40 +14,69 @@
         <div class="card shadow-sm">
             <div class="card-body p-4">
                 <h4 class="card-title">เลือกกลุ่มการทำงาน</h4>
-                <p class="card-subtitle mb-3 text-muted">กรุณาเลือกกลุ่ม Line/OA เพื่อเปิดการมองเห็น จากนั้นกดปุ่ม "ยืนยัน"</p>
+                <p class="card-subtitle mb-3 text-muted">กรุณาเลือกกลุ่ม Line/OA เพื่อเปิดการมองเห็น จากนั้นกดปุ่ม
+                    "ยืนยัน"</p>
 
                 <form method="post" action="{{ url_for('auth.select_groups') }}">
-                    <div class="mb-3">
-                        <a href="{{ url_for('auth.clear_group_filter') }}" class="btn btn-outline-secondary btn-sm">
-                            <i class="bi bi-eye"></i> เปิดการมองเห็นทั้งหมด
-                        </a>
-                    </div>
-                    
+
                     {# --- [แก้ไข] จัด Checkbox ให้อยู่ในกรอบที่สวยงาม --- #}
-                    <div class="list-group list-group-flush border rounded-3 mb-4">
-                        {% for group in groups %}
-                        <label class="list-group-item list-group-item-action py-3">
-                            <input class="form-check-input me-2" type="checkbox" name="group_ids" value="{{ group.id }}" 
-                                   id="group-{{ group.id }}"
-                                   {% if group.id in session.get('active_group_ids', []) %}checked{% endif %}>
-                            {{ group.name }}
-                        </label>
+                    <div class="row g-2 mb-4"> {% for group in groups %}
+                        <div class="col-4">
+                            <div class="customCheckBoxHolder h-100">
+
+                                <input type="checkbox" id="group-{{ group.id }}" class="customCheckBoxInput"
+                                    name="group_ids" value="{{ group.id }}" {% if group.id in
+                                    session.get('active_group_ids', []) %}checked{% endif %}>
+
+                                <label for="group-{{ group.id }}" class="customCheckBoxWrapper h-100 w-100">
+                                    <div class="customCheckBox">
+                                        <div class="inner">{{ group.name }}</div>
+                                    </div>
+                                </label>
+
+                            </div>
+                        </div>
                         {% else %}
-                        <div class="list-group-item text-center text-muted p-3">
+                        <div class="col-12 text-center text-muted p-3">
                             ยังไม่มีกลุ่มให้เลือก
                         </div>
                         {% endfor %}
                     </div>
-                    
+
                     <div class="d-grid">
                         <button type="submit" class="btn btn-primary btn-lg">
                             <i class="bi bi-check-circle-fill"></i> ยืนยัน
                         </button>
                     </div>
                 </form>
+                </form>
             </div>
         </div>
 
     </div>
 </div>
+
+{% block scripts %}
+<script>
+    // 1. เลือกฟอร์มและปุ่มยืนยัน
+    const groupForm = document.querySelector('form[action="{{ url_for('auth.select_groups') }}"]');
+
+    // 2. เพิ่ม Event Listener ให้กับฟอร์มเมื่อมีการกด submit
+    groupForm.addEventListener('submit', function (event) {
+        // 3. ค้นหา checkbox ทั้งหมดที่ถูก "ติ๊ก" อยู่
+        const checkedBoxes = document.querySelectorAll('input[name="group_ids"]:checked');
+
+        // 4. ตรวจสอบว่ามีอันที่ถูกติ๊กหรือไม่
+        if (checkedBoxes.length === 0) {
+            // 5. ถ้าไม่มีเลย ให้หยุดการส่งฟอร์ม
+            event.preventDefault();
+
+            // 6. แสดงข้อความแจ้งเตือน
+            alert('กรุณาเลือกกลุ่มการทำงานอย่างน้อย 1 กลุ่มครับ');
+        }
+        // ถ้ามี checkbox ถูกเลือกอย่างน้อย 1 อัน โค้ดจะทำงานตามปกติ (ส่งฟอร์ม)
+    });
+</script>
+{% endblock %}
+
 {% endblock %}

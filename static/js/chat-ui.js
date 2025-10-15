@@ -3,28 +3,17 @@ function createMessageElement(msgData) {
     let imageLoadPromise = null;
 
     const wrapper = document.createElement('div');
-    // กำหนด ID ก่อนเสมอ ถ้ามี
     if (msgData.id) {
         wrapper.id = `msg-${msgData.id}`;
-    }
-
-    // กำหนด Class หลักตามประเภทข้อความ
-    if (msgData.message_type === 'event') {
-        wrapper.classList.add('event-message');
-        if (msgData.is_close_event) {
-            wrapper.classList.add('event-closed');
-        }
-    } else {
-        // ใช้ sender_type ในการกำหนดว่าเป็น customer หรือ admin
-        // ถ้าไม่มี sender_type ให้ถือว่าเป็น customer เพื่อความปลอดภัย
-        const senderClass = `${msgData.sender_type || 'customer'}-message`;
-        wrapper.classList.add('message', senderClass);
     }
 
     const content = document.createElement('div');
     content.classList.add('message-content');
 
-    // จัดการเนื้อหาตามประเภท
+    const meta = document.createElement('div');
+    meta.classList.add('message-meta');
+
+    // จัดการเนื้อหาและ Meta ก่อน (ใช้ Logic เดิมของคุณ)
     switch (msgData.message_type) {
         case 'image':
             const img = document.createElement('img');
@@ -46,64 +35,85 @@ function createMessageElement(msgData) {
             content.appendChild(stickerImg);
             break;
         default: // Text และ Event
-            content.textContent = msgData.content;
+            content.innerHTML = msgData.content.replace(/\n/g, '<br>');
             break;
     }
 
-    wrapper.appendChild(content);
-
-    if (msgData.sender_type === 'admin' && msgData.line_sent_successfully === false) {
-        // ตอนแรกไม่ต้องสร้าง badge เลย
-        // แค่โยนใส่ failedMessageQueue ให้ markMessageAsFailed จัดการ
-        if (!window.failedMessageQueue) window.failedMessageQueue = {};
-        window.failedMessageQueue[msgData.id] = msgData.line_error_message;
-    }
-
-
-    // --- [แก้ไข] Logic การสร้าง Meta Data ใหม่ทั้งหมด ---
-    const meta = document.createElement('div');
-    meta.classList.add('message-meta');
-
     if (msgData.sender_type === 'admin') {
-        // ถ้าเป็น Admin (รวมถึง Event Log) ให้แสดงชื่อและเวลา
         meta.textContent = `@${msgData.oa_name || 'System'} : ${msgData.admin_email || ''} - ${msgData.full_datetime || ''}`;
     } else {
-        // ถ้าเป็น Customer ให้แสดงแค่เวลา
         meta.textContent = msgData.full_datetime || '';
     }
 
-    wrapper.appendChild(meta);
+    // ★★★ ส่วนสำคัญ: ประกอบร่างตามประเภท ★★★
+    if (msgData.message_type === 'event') {
+        // --- ถ้าเป็น Event ---
+        wrapper.classList.add('event-message');
+        if (msgData.is_close_event) {
+            wrapper.classList.add('event-closed');
+        }
+        wrapper.appendChild(content);
+        wrapper.appendChild(meta);
+
+    } else if (msgData.sender_type === 'customer') {
+        // --- ถ้าเป็นลูกค้า ---
+        wrapper.classList.add('message', 'customer-message');
+
+        const avatar = document.createElement('img');
+        avatar.className = 'chat-avatar';
+        avatar.src = window.currentUserPictureUrl || '/static/images/default-avatar.png';
+
+        const bubbleWrapper = document.createElement('div');
+        bubbleWrapper.appendChild(content);
+        bubbleWrapper.appendChild(meta);
+
+        wrapper.appendChild(avatar);
+        wrapper.appendChild(bubbleWrapper);
+
+    } else { // sender_type === 'admin'
+        // --- ถ้าเป็นแอดมิน (ใช้โครงสร้างแบบดั้งเดิมของคุณ) ---
+        wrapper.classList.add('message', 'admin-message');
+        wrapper.appendChild(content);
+        wrapper.appendChild(meta);
+    }
 
     return { element: wrapper, promise: imageLoadPromise };
 }
 
 // Function to add a message to the chat container
 function appendMessage(container, msgData, isPrepending = false) {
-
+    // ตรวจสอบว่ามีข้อความ ID นี้อยู่แล้วหรือยัง
     if (msgData.id && document.getElementById(`msg-${msgData.id}`)) {
-        console.log(`Message with ID ${msgData.id} already exists. Skipping.`);
         return null;
     }
-    // [แก้ไข] เรียกใช้ createMessageElement และรับค่ากลับมา
+
     const { element, promise } = createMessageElement(msgData);
 
     if (isPrepending) {
         container.prepend(element);
     } else {
         container.appendChild(element);
-        // [ลบ] เอาการ scroll ออกจากตรงนี้ เพราะมันเร็วเกินไป
-        // container.scrollTop = container.scrollHeight; 
     }
-    if (window.failedMessageQueue && window.failedMessageQueue[msgData.id]) {
-        console.log(`ข้อความ ID ${msgData.id} อยู่ในคิวล้มเหลว! กำลังแปะป้าย Error...`);
-        // ถ้าใช่ ให้เรียกฟังก์ชันแปะป้าย Error ทันที
-        markMessageAsFailed(msgData.id, window.failedMessageQueue[msgData.id]);
 
-        // ลบออกจากคิว เพื่อไม่ให้ทำงานซ้ำ
+    if (msgData.line_sent_successfully === false) {
+        // ถ้าส่งไม่สำเร็จ ให้เรียกฟังก์ชันแปะป้าย Error ทันที
+        markMessageAsFailed(msgData.id, msgData.line_error_message);
+    }
+
+    // จัดการข้อความที่ส่งไม่สำเร็จ
+    if (window.failedMessageQueue && window.failedMessageQueue[msgData.id]) {
+        markMessageAsFailed(msgData.id, window.failedMessageQueue[msgData.id]);
         delete window.failedMessageQueue[msgData.id];
     }
 
-    // [แก้ไข] คืนค่า promise ออกไป เพื่อให้คนเรียกใช้รอได้
+    // ★★★ เพิ่มส่วน Auto-scroll ที่สมบูรณ์ ★★★
+    if (!isPrepending) {
+        // ใช้ setTimeout เล็กน้อยเพื่อให้แน่ใจว่า DOM ถูกวาดเสร็จแล้ว
+        setTimeout(() => {
+            container.scrollTop = container.scrollHeight;
+        }, 50);
+    }
+
     return promise;
 }
 

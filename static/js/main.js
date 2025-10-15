@@ -36,6 +36,31 @@ document.body.addEventListener('click', enableSound, true);
 // END: Sound Notification Setup
 // =======================================================
 
+/**
+ * ★★★ [ย้ายมาไว้ตรงนี้] ★★★
+ * แปลง ISO timestamp string ให้อยู่ในรูปแบบ "HH:mm" หรือ "DD Mon"
+ * @param {string} isoString - เวลาในรูปแบบ ISO 8601 (เช่น "2025-10-15T12:30:00Z")
+ * @returns {string} - เวลาที่จัดรูปแบบแล้ว
+ */
+function formatSidebarTimestamp(isoString) {
+    if (!isoString) return '';
+
+    const messageDate = new Date(isoString);
+    const now = new Date();
+
+    const isToday = messageDate.getDate() === now.getDate() &&
+        messageDate.getMonth() === now.getMonth() &&
+        messageDate.getFullYear() === now.getFullYear();
+
+    if (isToday) {
+        // ถ้าเป็นวันนี้: แสดงแค่ HH:mm
+        return messageDate.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+    } else {
+        // ถ้าเป็นวันอื่น: แสดงแค่ "15 Oct"
+        return messageDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     // 1. STATE & VARIABLES
     window.failedMessageQueue = {};
@@ -48,8 +73,10 @@ document.addEventListener('DOMContentLoaded', function () {
     let totalMessages = 0;
     let isLoadingMore = false;
     let currentRoom = null;
+    let isSearching = false;
     let currentFullNote = '';
     let currentUserTags = [];
+    window.currentUserPictureUrl = null;
 
 
 
@@ -79,7 +106,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const quickReplyList = document.getElementById('quick-reply-list');
     const quickReplySearch = document.getElementById('quick-reply-search');
     const inlineQrResults = document.getElementById('inline-qr-results');
-    const searchInput = document.getElementById('user-search-input');
     const noteEditorModal = new bootstrap.Modal(document.getElementById('noteEditorModal'));
     const fullNoteTextarea = document.getElementById('full-note-textarea');
     const newMessageAlert = document.getElementById('new-message-alert');
@@ -89,7 +115,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const customerInfoPanel = document.getElementById('customer-info-panel');
     const infoPlaceholder = customerInfoPanel.querySelector('.info-placeholder');
     const infoArea = document.getElementById('info-area');
-
 
     // =======================================================
     // START: REAL-TIME UNREAD TIMER LOGIC
@@ -246,6 +271,7 @@ document.addEventListener('DOMContentLoaded', function () {
             currentUserId = userId;
             currentOaId = oaId;
             currentUserDbId = data.user.db_id;
+            window.currentUserPictureUrl = data.user.picture_url;
             currentOffset = data.messages.length;
             totalMessages = data.total_messages;
             isLoadingMore = false;
@@ -259,7 +285,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // 2. สร้าง HTML สำหรับคอลัมน์ข้อมูลลูกค้า
             infoArea.innerHTML = `
-                <img src="${data.user.picture_url || '/static/images/default-avatar.png'}" 
+                <img src="${data.user.picture_url || '/static/images/No_profile.png'}" 
                     alt="Profile Picture" 
                     class="info-profile-pic">
                 <form id="user-info-form">
@@ -345,41 +371,73 @@ document.addEventListener('DOMContentLoaded', function () {
     function handleConversationUpdate(convData) {
         if (!convData || !convData.user_id) return;
 
+        // --- ส่วนที่ 1: สร้าง Element ใหม่ (เหมือนเดิม) ---
         const existingUserLink = document.querySelector(`.list-group-item-action[data-userid="${convData.user_id}"][data-oaid="${convData.line_account_id}"]`);
         if (existingUserLink) {
             existingUserLink.remove();
         }
 
         const newLink = document.createElement('a');
+        // ... (โค้ดส่วนสร้าง newLink ทั้งหมดเหมือนเดิม) ...
         newLink.href = "#";
         newLink.className = `list-group-item list-group-item-action d-flex align-items-center status-${convData.status}`;
         newLink.dataset.userid = convData.user_id;
         newLink.dataset.oaid = convData.line_account_id;
-
         if (convData.status === 'unread' && convData.last_unread_timestamp) {
             newLink.dataset.unreadTimestamp = convData.last_unread_timestamp;
         }
-
-        const defaultAvatar = "/static/images/default-avatar.png";
+        const defaultAvatar = "/static/images/No_profile.png";
         const unreadBadge = (convData.unread_count && convData.unread_count > 0) ? `<span class="badge bg-danger rounded-pill">${convData.unread_count}</span>` : '';
         const timerHTML = `<small class="text-danger me-2 unread-timer" id="timer-${convData.user_id}-${convData.line_account_id}"></small>`;
-
-        const truncatedMessage = convData.last_message_content.length > 10
-            ? convData.last_message_content.substring(0, 10) + '...' 
-            : convData.last_message_content;
-
-        newLink.innerHTML = `<img src="${convData.picture_url || defaultAvatar}" alt="Profile" class="rounded-circle me-3" style="width: 50px; height: 50px;"><div class="flex-grow-1"><div class="d-flex w-100 justify-content-between"><strong class="mb-1">${convData.display_name}</strong><div>${timerHTML}${unreadBadge}</div></div><small class="text-muted">@${convData.oa_name}</small><p class="mb-0 text-muted text-truncate small"><span>${convData.last_message_prefix}</span> ${truncatedMessage}</p></div>`;
-
-        const timerElement = newLink.querySelector('.unread-timer');
-        if (timerElement) {
-            if (convData.status !== 'unread' && convData.frozen_time) {
-                timerElement.textContent = convData.frozen_time;
-                timerElement.classList.add('text-muted', 'timer-frozen');
-                timerElement.classList.remove('text-danger');
-            }
+        const readByHTML = convData.read_by ? `<small class="text-muted read-by-badge">${convData.read_by}</small>` : '';
+        const truncatedMessage = convData.last_message_content;
+        let tagsHTML = '';
+        if (convData.tags && convData.tags.length > 0) {
+            tagsHTML = convData.tags.map(tag => `<span class="badge me-1" style="background-color: ${tag.color}; color: white; font-size: 0.65em;">${tag.name}</span>`).join('');
         }
+        const displayTime = formatSidebarTimestamp(convData.last_message_iso_timestamp);
 
-        userList.prepend(newLink);
+        newLink.innerHTML = `
+        <img src="${convData.picture_url || defaultAvatar}" alt="Profile" class="rounded-circle me-3" style="width: 50px; height: 50px;">
+        <div class="flex-grow-1">
+            <div class="d-flex w-100 justify-content-between">
+                <strong class="mb-1">${convData.display_name}</strong>
+                <div>${timerHTML}${unreadBadge}</div>
+            </div>
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <small class="text-muted me-2">@${convData.oa_name}</small>
+                    ${tagsHTML}
+                </div>
+                <small class="text-muted">${displayTime}</small>
+            </div>
+            <p class="mb-0 text-muted small sidebar-last-message">
+                <span class="message-preview">
+                    <span>${convData.last_message_prefix}</span> ${truncatedMessage}
+                </span>
+                ${readByHTML}
+            </p>
+        </div>`;
+
+        // --- ★★★ ส่วนที่ 2: Logic ใหม่สำหรับหาตำแหน่งที่จะแทรก ★★★ ---
+        const userList = document.getElementById('user-list');
+
+        if (convData.status === 'closed') {
+            // --- ถ้าสถานะเป็น 'closed' ---
+            // ให้หาแชท 'closed' อันแรกสุดที่มีอยู่
+            const firstClosed = userList.querySelector('.status-closed');
+            if (firstClosed) {
+                // ถ้าเจอ ให้แทรก "ก่อนหน้า" แชท closed อันแรก
+                userList.insertBefore(newLink, firstClosed);
+            } else {
+                // ถ้าไม่เจอแชท closed เลย ให้เอาไปต่อท้ายสุด
+                userList.appendChild(newLink);
+            }
+        } else {
+            // --- ถ้าเป็นสถานะอื่นๆ (unread, read, issue, etc.) ---
+            // ให้นำไปวางไว้บนสุดเหมือนเดิม
+            userList.prepend(newLink);
+        }
 
         if (String(convData.user_id) === String(currentUserId) && String(convData.line_account_id) === String(currentOaId)) {
             newLink.classList.add('active');
@@ -418,74 +476,107 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    // =======================================================
+    // START: SOCKET.IO EVENT LISTENERS (FINAL DEBUG VERSION)
+    // =======================================================
+
+    console.log('Attempting to connect to Socket.IO server...');
 
     socket.on('connect', () => {
-        console.log('✅ Successfully connected to WebSocket server!');
+        console.log('✅✅✅ SUCCESS: Connected to WebSocket server! Session ID:', socket.id);
+
+        // ดึง group_ids ที่ใช้งานอยู่จาก SERVER_DATA ที่ Flask ส่งมาให้
+        const activeGroupIds = SERVER_DATA.selected_group_ids || [];
+        socket.emit('update_active_groups', { group_ids: activeGroupIds });
     });
 
-    socket.on('update_conversation_list', reloadSidebar);
+    socket.on('connect_error', (err) => {
+        console.error('🔥🔥🔥 FAILED: Socket.IO Connection Error! 🔥🔥🔥');
+        console.error('Error Type:', err.name);
+        console.error('Error Message:', err.message);
+        if (err.data) {
+            console.error('Error Data:', err.data);
+        }
+    });
 
-    socket.on('resort_sidebar', () => {
-        const params = new URLSearchParams(window.location.search);
-        const page = parseInt(params.get('page')) || 1;
+    socket.on('disconnect', (reason) => {
+        console.warn('🔌 Socket.IO Disconnected. Reason:', reason);
+    });
 
-        if (page > 1) {
-            // ถ้าไม่ได้อยู่หน้าแรก ให้แสดงป้ายเตือนแทนการ reload
+    socket.on('render_conversation_update', (freshData) => {
+        if (isSearching) {
+            console.log('Search is active. Ignoring real-time sidebar update.');
+
+            // (ทางเลือก) แสดงป้ายเตือนว่ามีอัปเดตใหม่ แต่ไม่ไปรบกวนผลการค้นหา
+            const newMessageAlert = document.getElementById('new-message-alert');
             if (newMessageAlert) {
                 newMessageAlert.style.display = 'block';
-                newMessageAlert.textContent = 'List re-sorted. Click to view latest.'; // เปลี่ยนข้อความได้
+                newMessageAlert.textContent = 'New updates available. Clear search to see them.';
             }
+            return; // ออกจากฟังก์ชันทันที
+        }
+
+        if (!freshData || !freshData.user_id) return;
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const currentFilter = urlParams.get('status_filter') || 'all';
+        const existingElement = document.querySelector(`.list-group-item-action[data-userid="${freshData.user_id}"][data-oaid="${freshData.line_account_id}"]`);
+
+        // --- ★★★ Logic ใหม่ทั้งหมด ★★★ ---
+
+        // 1. ตรวจสอบว่าสถานะใหม่ของแชทตรงกับฟิลเตอร์ปัจจุบันหรือไม่ (หรือเราอยู่ที่หน้า 'ทั้งหมด')
+        const shouldBeVisible = (currentFilter === 'all') || (freshData.status === currentFilter);
+
+        if (shouldBeVisible) {
+            // 2. ถ้าแชทควรจะแสดงผลในหน้านี้: ให้เรียกใช้ handleConversationUpdate
+            // ฟังก์ชันนี้จะลบของเก่า (ถ้ามี) แล้วสร้างของใหม่ใส่เข้าไป ทำให้ข้อมูลเป็นปัจจุบันเสมอ
+            handleConversationUpdate(freshData);
         } else {
-            // ถ้าอยู่หน้าแรก ก็ให้ reload ตามปกติ
-            reloadSidebar();
+            // 3. ถ้าแชท "ไม่ควร" แสดงผลในหน้านี้อีกต่อไป (เช่น สถานะเปลี่ยนไปแล้ว)
+            // และถ้าแชทนั้นมีแสดงอยู่ใน Sidebar ของเรา
+            if (existingElement) {
+                // ให้ลบมันทิ้งไปจากหน้าจอทันที
+                existingElement.remove();
+            }
         }
-    });
-
-    socket.on('resort_sidebar', function (convData) {
-        console.log('🔄 Received intelligent sidebar update:', convData);
-
-        // ตรวจสอบว่ามีข้อมูลที่จำเป็นส่งมาหรือไม่
-        if (!convData || !convData.user_id) {
-            console.warn('Received resort signal without data, falling back to full reload.');
-            reloadSidebar(); // ทำงานแบบเก่าเพื่อป้องกันข้อผิดพลาด
-            return;
-        }
-
-        // เรียกใช้ฟังก์ชันอัปเดตแบบเจาะจงที่มีอยู่แล้ว
-        // ฟังก์ชันนี้จะอัปเดตแค่รายการเดียว โดยไม่กระทบรายการอื่น
-        handleConversationUpdate(convData);
     });
 
     socket.on('new_message', function (msgData) {
-        console.groupCollapsed('--- Received New Message Event ---');
-        console.log('Message Data Received:', msgData);
+        // --- ส่วนที่ 1: จัดการการแจ้งเตือน (เสียง & Desktop) ---
+        const isAdminMessage = msgData.sender_type === 'admin';
+        if (msgData.message_type !== 'event' && !isAdminMessage) {
+            // เล่นเสียง
+            notificationSound.play().catch(e => console.warn("Sound notification failed.", e));
 
-        // --- [FINAL FIX] ---
-        // กรองข้อความที่ไม่ต้องการเสียงแจ้งเตือนออกไป
-        // 1. ข้อความประเภท 'event' (เช่น การเปลี่ยนสถานะ)
-        // 2. ข้อความจากแอดมิน (ตัวเอง)
-        const isAdminMessage = msgData.sender_type === 'admin' && msgData.admin_email === currentUserEmail;
-        if (msgData.message_type === 'event' || isAdminMessage) {
-            console.log('ℹ️ Ignoring event or own admin message.');
-            console.groupEnd();
-            return; // ออกจากฟังก์ชันทันที ไม่ต้องทำอะไรต่อ
+            // แสดง Desktop notification
+            if (Notification.permission === "granted") {
+                const userLink = document.querySelector(`.list-group-item-action[data-userid="${msgData.user_id}"][data-oaid="${msgData.oa_id}"]`);
+                let title = "มีข้อความใหม่";
+                let iconUrl = "/static/images/default-avatar.png";
+                if (userLink) {
+                    title = `ข้อความใหม่จาก ${userLink.querySelector('strong').textContent}`;
+                    iconUrl = userLink.querySelector('img').src;
+                }
+                const notification = new Notification(title, { body: msgData.content, icon: iconUrl, tag: msgData.user_id });
+                notification.onclick = () => {
+                    window.focus();
+                    if (userLink) userLink.click();
+                };
+            }
         }
-        // --- [END FINAL FIX] ---
 
-        // ถ้าผ่านมาถึงตรงนี้ได้ แปลว่าเป็นข้อความ "จากลูกค้าจริงๆ" เท่านั้น
-        notificationSound.currentTime = 0;
-        notificationSound.play().catch(error => {
-            console.error("Could not play sound (this is normal until user clicks on the page):", error);
-        });
+        // --- ส่วนที่ 2: อัปเดตหน้าต่างแชทที่เปิดอยู่ ---
+        const isForCurrentChat = String(msgData.user_id) === String(currentUserId) &&
+            String(msgData.oa_id) === String(currentOaId);
 
-        const isForCurrentChat = String(msgData.user_id) === String(currentUserId) && String(msgData.oa_id) === String(currentOaId);
         if (isForCurrentChat) {
             appendMessage(messagesContainer, msgData);
-            // ... (โค้ดส่วน scroll เหมือนเดิม ไม่ต้องเปลี่ยน)
         }
-
-        console.groupEnd();
     });
+
+    // =======================================================
+    // END: SOCKET.IO EVENT LISTENERS
+    // =======================================================
 
 
 
@@ -586,8 +677,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     async function handleSaveUserInfo(event) {
-        // [แก้ไข] ไม่ต้องหาปุ่มแล้ว เพราะเราดักฟัง submit event โดยตรง
-        event.preventDefault(); // หยุดการโหลดหน้าเว็บใหม่
+        event.preventDefault();
 
         if (!currentUserDbId) {
             console.error("Cannot save, currentUserDbId is not set.");
@@ -596,15 +686,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const nickname = document.getElementById('user-nickname').value;
         const phone = document.getElementById('user-phone').value;
-        // เราดึง note จากตัวแปรที่เราเก็บไว้ เพื่อไม่ให้ข้อมูลหาย
         const note = document.getElementById('user-note').value;
 
         try {
-            // เราใช้ Endpoint เดิม แต่ตอนนี้จะส่งแค่ nickname กับ phone ที่เปลี่ยนไป
+            // เราจะเรียก API ให้บันทึกข้อมูลเหมือนเดิม
             await saveUserInfo(currentUserDbId, nickname, phone, note);
 
-            // โหลดแชทใหม่เพื่อให้เห็น Log การแก้ไข
-            loadChatForUser(currentUserId, currentOaId);
+            const saveBtn = document.querySelector('#user-info-form button[type="submit"]');
+            if (saveBtn) {
+                saveBtn.textContent = 'Saved!';
+                setTimeout(() => { saveBtn.textContent = 'Save Info'; }, 2000);
+            }
 
         } catch (error) {
             console.error('Save user info error:', error);
@@ -821,8 +913,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 userLink.classList.add(`status-${result.new_status}`);
             }
 
-            loadChatForUser(currentUserId, currentOaId);
-
         } catch (error) {
             console.error("Status update error:", error);
             alert("Failed to update status.");
@@ -866,8 +956,37 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
+    const enableNotificationsBtn = document.getElementById('enable-notifications-btn');
+    if (enableNotificationsBtn) {
+        enableNotificationsBtn.addEventListener('click', (event) => {
+            event.preventDefault();
 
-
+            // 1. ตรวจสอบว่า Browser รองรับ Notification API หรือไม่
+            if (!("Notification" in window)) {
+                alert("This browser does not support desktop notification");
+            }
+            // 2. ตรวจสอบสถานะการอนุญาตปัจจุบัน
+            else if (Notification.permission === "granted") {
+                alert("Desktop notifications are already enabled.");
+                // สร้างการแจ้งเตือนตัวอย่าง
+                new Notification("เปิดการแจ้งเตือนสำเร็จ!", { body: "คุณจะได้รับการแจ้งเตือนเมื่อมีข้อความใหม่" });
+            }
+            else if (Notification.permission !== "denied") {
+                // 3. ถ้ายังไม่เคยถาม หรือยังไม่ได้ปฏิเสธ ให้ขออนุญาต
+                Notification.requestPermission().then((permission) => {
+                    // 4. หลังจากผู้ใช้เลือกแล้ว
+                    if (permission === "granted") {
+                        alert("Desktop notifications have been enabled successfully!");
+                        new Notification("เปิดการแจ้งเตือนสำเร็จ!", { body: "คุณจะได้รับการแจ้งเตือนเมื่อมีข้อความใหม่" });
+                    } else {
+                        alert("You have denied notification permissions.");
+                    }
+                });
+            } else {
+                alert("You have previously denied notifications. Please enable them in your browser settings.");
+            }
+        });
+    }
 
     // ฟังก์ชันสำหรับเปิด Modal (นำ Logic เดิมมาใส่ในนี้)
     async function openTagsModal() {
@@ -1012,15 +1131,43 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // [เพิ่ม] Event Listener สำหรับช่องค้นหา
-    let searchTimeout;
-    searchInput.addEventListener('input', (e) => {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => {
-            performSearch(e.target.value);
-        }, 300);
-    });
-    // ★★★ 3. แก้ไข Event Listener ของ paste ให้สั้นลง ★★★
+    const searchInput = document.getElementById('user-search-input');
+    const searchBtn = document.getElementById('user-search-btn');
+
+    // ฟังก์ชันสำหรับเริ่มการค้นหา
+    function triggerSearch() {
+        const query = searchInput.value.trim();
+        if (query) {
+            isSearching = true; // ★★★ ตั้งสถานะว่ากำลังค้นหา ★★★
+            console.log(`Starting search for: "${query}"`);
+            performSearch(query); // เรียกใช้ฟังก์ชัน performSearch เดิมของคุณ
+        }
+    }
+
+    // Event Listener สำหรับช่องค้นหา
+    if (searchInput) {
+        // เมื่อกดปุ่ม Search
+        searchBtn.addEventListener('click', triggerSearch);
+
+        // เมื่อกด Enter
+        searchInput.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                triggerSearch();
+            }
+        });
+
+        // ★★★ ส่วนสำคัญ: เมื่อลบข้อความค้นหาจนหมด ★★★
+        searchInput.addEventListener('input', function () {
+            if (searchInput.value.trim() === '') {
+                isSearching = false; // ★★★ ยกเลิกสถานะการค้นหา ★★★
+                console.log('Search cleared. Reloading default chat list.');
+                // กลับไปที่หน้าแรกเพื่อโหลดรายการแชทล่าสุด
+                window.location.href = '/chats/';
+            }
+        });
+    }
+
     replyMessageInput.addEventListener('paste', function (event) {
         const items = (event.clipboardData || event.originalEvent.clipboardData).items;
         for (let index in items) {
@@ -1093,4 +1240,16 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
+    const applyFilterBtn = document.getElementById('apply-group-filter-btn'); // **คุณอาจจะต้องเปลี่ยน id นี้ให้ตรงกับปุ่มของคุณ**
+    if (applyFilterBtn) {
+        applyFilterBtn.addEventListener('click', function () {
+            // เมื่อกด Apply Filter ให้อ่านค่า checkbox ที่เลือกใหม่
+            const selectedIds = Array.from(document.querySelectorAll('.group-checkbox:checked')).map(cb => parseInt(cb.value));
+            // แล้วส่งไปอัปเดตที่ server ทันที
+            socket.emit('update_active_groups', { group_ids: selectedIds });
+
+            // หมายเหตุ: ส่วนนี้เป็นการยิง socket event ควบคู่ไปกับการ submit form เดิมของคุณ
+            // ไม่ต้องลบโค้ด submit form เดิมออก
+        });
+    }
 });

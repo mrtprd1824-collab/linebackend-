@@ -9,12 +9,14 @@ from .models import LineAccount
 
 
 
+
 def create_app():
     app = Flask(
         __name__,
         template_folder=os.path.join(os.path.dirname(__file__), "..", "templates"),
         static_folder=os.path.join(os.path.dirname(__file__), "..", "static"),
     )
+
 
     # โหลดคอนฟิกครั้งเดียว
     app.config.from_object(Config)
@@ -34,7 +36,7 @@ def create_app():
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
-    socketio.init_app(app, async_mode="eventlet")
+    socketio.init_app(app, async_mode="gevent")
 
     # ให้ Alembic เห็น models
     from . import models

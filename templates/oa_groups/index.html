@@ -1,56 +1,61 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="card shadow-sm">
-    <div class="card-header bg-light d-flex justify-content-between align-items-center">
-        <h4 class="mb-0">
-            <i class="bi bi-folder2-open"></i> OA Groups
-        </h4>
-        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#oaGroupModal"
-            data-url="{{ url_for('oa_groups.add') }}">
-            <i class="bi bi-plus-circle-fill"></i> Add New Group
-        </button>
-    </div>
+<div class="row justify-content-center">
+    <div class="col-lg-8"> {# คุณสามารถปรับขนาดความกว้างได้ตามชอบ เช่น col-lg-8 หรือ col-lg-12 #}
 
-    <div class="card-body">
-        <div class="table-responsive">
-            {# --- [ปรับปรุง] เพิ่ม class table-hover และ align-middle --- #}
-            <table class="table table-hover align-middle">
-                <thead>
-                    <tr>
-                        <th>Group Name</th>
-                        <th class="text-end" style="width: 150px;">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for group in groups %}
-                    <tr>
-                        <td><strong>{{ group.name }}</strong></td>
-                        <td class="text-end">
-                            {# --- [ปรับปรุง] เปลี่ยนปุ่มเป็น Outline และเพิ่ม Icon --- #}
-                            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal"
-                                data-bs-target="#oaGroupModal" data-url="{{ url_for('oa_groups.edit', id=group.id) }}">
-                                <i class="bi bi-pencil-fill"></i> Edit
-                            </button>
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">
+                    <i class="bi bi-folder2-open"></i> OA Groups
+                </h4>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#oaGroupModal"
+                    data-url="{{ url_for('oa_groups.add') }}">
+                    <i class="bi bi-plus-circle-fill"></i> Add New Group
+                </button>
+            </div>
 
-                            <form method="post" action="{{ url_for('oa_groups.delete', id=group.id) }}"
-                                onsubmit="return confirm('Are you sure?');" class="d-inline">
-                                <button type="submit" class="btn btn-sm btn-outline-danger">
-                                    <i class="bi bi-trash-fill"></i> Delete
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="2" class="text-center text-muted p-4">
-                            No groups found. Click 'Add New Group' to create one.
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>Group Name</th>
+                                <th class="text-end" style="width: 150px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for group in groups %}
+                            <tr>
+                                <td><strong>{{ group.name }}</strong></td>
+                                <td class="text-end">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary"
+                                        data-bs-toggle="modal" data-bs-target="#oaGroupModal"
+                                        data-url="{{ url_for('oa_groups.edit', id=group.id) }}">
+                                        <i class="bi bi-pencil-fill"></i> Edit
+                                    </button>
+
+                                    <form method="post" action="{{ url_for('oa_groups.delete', id=group.id) }}"
+                                        onsubmit="return confirm('Are you sure?');" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="bi bi-trash-fill"></i> Delete
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="2" class="text-center text-muted p-4">
+                                    No groups found. Click 'Add New Group' to create one.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
+
     </div>
 </div>
 

@@ -85,13 +85,19 @@ def profile():
 
 #============== เลือกกลุ่มหน้าแรก ================
 
-@bp.route("/select-groups", methods=['POST']) # เปลี่ยนเป็น select-groups และรับ POST
+@bp.route('/select-groups', methods=['POST'])
 @login_required
 def select_groups():
-    # รับค่า group_ids ที่เป็น list จากฟอร์ม
-    group_ids = request.form.getlist('group_ids', type=int)
-    # บันทึก list ลงใน session
-    session['active_group_ids'] = group_ids # เปลี่ยนชื่อ session key ด้วย
+    selected_group_ids = request.form.getlist('group_ids', type=int)
+    
+    # ★★★ เพิ่มส่วนตรวจสอบนี้เข้าไป ★★★
+    if not selected_group_ids:
+        # ถ้าไม่มีกลุ่มไหนถูกเลือกมาเลย
+        flash('กรุณาเลือกอย่างน้อย 1 กลุ่มเพื่อดำเนินการต่อ', 'warning')
+        return redirect(url_for('auth.dashboard')) # กลับไปหน้า dashboard
+
+    session['active_group_ids'] = selected_group_ids
+    flash('อัปเดตกลุ่มที่ใช้งานเรียบร้อยแล้ว', 'success')
     return redirect(url_for('chats.index'))
 
 @bp.route("/clear-group-filter")

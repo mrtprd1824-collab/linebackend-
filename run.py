@@ -1,18 +1,17 @@
-# run.py
-import eventlet
-eventlet.monkey_patch()
-
 import os
 import click
 from werkzeug.security import generate_password_hash
 
-from app import create_app , socketio
-from app.extensions import socketio, db
+# ★★★ แก้ไขการ import ตรงนี้ ★★★
+# เราจะ import แค่ create_app จาก app และ import ส่วนอื่นๆ จาก extensions
+from app import create_app
+from app.extensions import db, socketio
+# ★★★ จบส่วนแก้ไขการ import ★★★
+
 from app.models import User
 
 app = create_app()
 
-# ---- โค้ดสำหรับสร้างแอดมิน ----
 @app.cli.command("create-admin")
 @click.argument("email")
 @click.argument("password")
@@ -24,9 +23,7 @@ def create_admin(email, password):
 
     new_admin = User(
         email=email,
-        # --- แก้ไขตรงนี้ ---
         password_hash=generate_password_hash(password, method='pbkdf2:sha256'),
-        # --- จบส่วนที่แก้ไข ---
         is_admin=True
     )
 
@@ -34,10 +31,9 @@ def create_admin(email, password):
     db.session.commit()
 
     print(f"สร้างแอดมิน '{email}' เรียบร้อยแล้ว")
-# ---- จบส่วนโค้ดสร้างแอดมิน ----
 
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    socketio.run(app, host='0.0.0.0', port=port, debug=False, use_reloader=False)
-
+    # ใช้ use_reloader=False เพื่อให้ทำงานกับ eventlet ได้อย่างเสถียร
+    socketio.run(app, host='0.0.0.0', port=port, debug=True, use_reloader=False)

@@ -101,10 +101,12 @@ class LineUser(db.Model):
     __table_args__ = (db.UniqueConstraint('line_account_id', 'user_id', name='_line_account_user_uc'),)
 
     tags = db.relationship('Tag', secondary=tags_users,
-                           backref=db.backref('users', lazy='dynamic'),
-                           lazy='dynamic')
+                            backref=db.backref('users', lazy='dynamic'),
+                            lazy='dynamic')
     last_seen_at = db.Column(db.DateTime)
-    last_message_at = db.Column(db.DateTime, default=datetime.utcnow, index=True) # <-- [เพิ่ม] สำหรับเรียงลำดับ user ที่มีข้อความใหม่
+    last_message_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    read_by_admin_id = db.Column(db.Integer, db.ForeignKey('user.id', name='fk_line_user_read_by_admin'), nullable=True)
+    read_by_admin = db.relationship('User', foreign_keys=[read_by_admin_id])
 
     def __repr__(self):
         return f'<LineUser {self.display_name or self.user_id}>'
