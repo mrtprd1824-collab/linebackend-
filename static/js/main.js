@@ -393,8 +393,10 @@ document.addEventListener('DOMContentLoaded', function () {
         newLink.className = `list-group-item list-group-item-action d-flex align-items-center status-${convData.status}`;
         newLink.dataset.userid = convData.user_id;
         newLink.dataset.oaid = convData.line_account_id;
-        if (convData.status === 'unread' && convData.last_unread_timestamp) {
+        if (convData.last_unread_timestamp) {
             newLink.dataset.unreadTimestamp = convData.last_unread_timestamp;
+        } else {
+            delete newLink.dataset.unreadTimestamp;
         }
         const defaultAvatar = "/static/images/No_profile.png";
         const unreadBadge = (convData.unread_count && convData.unread_count > 0) ? `<span class="badge bg-danger rounded-pill">${convData.unread_count}</span>` : '';

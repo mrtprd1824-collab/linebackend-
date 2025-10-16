@@ -76,8 +76,15 @@ def callback(webhook_path):
                         print(f"Could not get profile for {event.source.user_id}: {e}")
                 
                 # [ปรับปรุง] อัปเดตสถานะและเวลา
-                user.status = 'unread'
-                user.read_by_admin_id = None
+                previous_status = (user.status or "").strip().lower()
+                should_reset_status = previous_status in ("", "read", "unread") or previous_status == "closed"
+                if should_reset_status:
+                    user.status = 'unread'
+                else:
+                    # คงสถานะปัจจุบัน (เช่น deposit/withdraw/issue) เมื่อมีข้อความเข้าใหม่
+                    pass
+                if should_reset_status:
+                    user.read_by_admin_id = None
                 user.last_message_at = datetime.utcnow()
                 user.is_blocked = False
                 # [เอาออก] ไม่มีการจัดการ unread_count ด้วยตนเองอีกต่อไป

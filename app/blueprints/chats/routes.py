@@ -113,7 +113,13 @@ def _generate_conversation_data(user_id, oa_id):
         else:
             last_message_content = f"[{latest_message.message_type.capitalize()}]"
         
-        if not latest_message.is_outgoing and line_user.status == 'unread':
+        if (
+            not latest_message.is_outgoing
+            and (
+                line_user.last_read_timestamp is None
+                or latest_message.timestamp > line_user.last_read_timestamp
+            )
+        ):
             aware_timestamp = latest_message.timestamp.replace(tzinfo=timezone.utc)
             last_unread_timestamp = aware_timestamp.timestamp()
 
@@ -254,10 +260,19 @@ def index():
 
             aware_timestamp = msg.timestamp.replace(tzinfo=timezone.utc)
             correct_timestamp = aware_timestamp.timestamp()
+            has_unread = (
+                unread_count > 0
+                or (
+                    not msg.is_outgoing
+                    and (
+                        user.last_read_timestamp is None
+                        or msg.timestamp > user.last_read_timestamp
+                    )
+                )
+            )
+            last_unread_timestamp = correct_timestamp if has_unread else None
 
-            last_message_iso_timestamp = None
-            if msg:
-                last_message_iso_timestamp = msg.timestamp.isoformat() + "Z"
+            last_message_iso_timestamp = msg.timestamp.isoformat() + "Z" if msg else None
 
             # ★★★ ดึงชื่อผู้ดูข้อความล่าสุด ★★★
             read_by_name = None
@@ -268,7 +283,7 @@ def index():
                 "message": msg,
                 "user": user,
                 "unread_count": unread_count,
-                "last_unread_timestamp": correct_timestamp,
+                "last_unread_timestamp": last_unread_timestamp,
                 "tags": [
                     {"name": tag.name, "color": tag.color}
                     for tag in user.tags
