@@ -1120,3 +1120,22 @@ body {
     color: var(--muted-text);
   }
 }
+
+/* --- Force wrapping for very-long words/URLs in chat bubbles --- */
+.message .message-content,
+.customer-message .message-content,
+.admin-message .message-content {
+  /* บังคับตัดคำทุกกรณี */
+  overflow-wrap: anywhere;   /* สมัยใหม่ – ชัวร์สุด */
+  word-break: break-word;    /* สำรองสำหรับบางเบราว์เซอร์ */
+  white-space: pre-wrap;     /* เคารพ \n แต่ยังตัดคำได้ */
+  
+  /* กันบับเบิลล้นจอในเคสสุดโต่ง */
+  max-width: 75vw;
+}
+
+/* กัน scroll แนวนอนเวลาเผลอหลุดกรอบ */
+.chat-messages {
+  overflow-x: hidden;
+}
+
