@@ -1,116 +1,126 @@
-# app/services/oa_checker.py
+# app/services/oa_checker.py  (เวอร์ชัน SYNC)
 from datetime import datetime, timezone
-from linebot import LineBotApi
-from linebot.exceptions import LineBotApiError
-from app.extensions import db
-import requests
 import os
+import requests
+from requests.adapters import HTTPAdapter, Retry
+from app.extensions import db  # เผื่อในอนาคตใช้ commit ภายใน service (ตอนนี้ไม่จำเป็น)
+
+def _requests_session(timeout=(5, 10)):
+    """
+    สร้าง Session ที่มี retry สำหรับ error เครือข่ายชั่วคราว
+    timeout = (connect_timeout, read_timeout) หน่วยวินาที
+    """
+    sess = requests.Session()
+    retries = Retry(
+        total=3,
+        backoff_factor=0.5,
+        status_forcelist=(429, 500, 502, 503, 504),
+        allowed_methods=["GET", "POST", "HEAD", "OPTIONS"]
+    )
+    adapter = HTTPAdapter(max_retries=retries)
+    sess.mount("http://", adapter)
+    sess.mount("https://", adapter)
+    sess.request_timeout = timeout
+    return sess
 
 def check_single_oa_status(account):
     """
-    ตรวจสอบสถานะ Token และคืนค่าเป็น (is_ok: bool, message: str)
-    ฟังก์ชันนี้จะไม่แก้ไข object account อีกต่อไป
+    ตรวจสอบสถานะ Token กับ LINE Messaging API (SYNC)
+    คืนค่า: (is_ok: bool, message: str)
     """
     print(f"Checking OA Status for: {account.name}...")
-    
+    if not getattr(account, "channel_access_token", None):
+        return False, "Channel Access Token is missing."
+
+    headers = {"Authorization": f"Bearer {account.channel_access_token}"}
+    api_url = "https://api.line.me/v2/bot/info"
+
+    sess = _requests_session()
     try:
-        if not account.channel_access_token:
-            raise ValueError("Channel Access Token is missing.")
-
-        line_bot_api = LineBotApi(account.channel_access_token, timeout=10)
-        line_bot_api.get_bot_info()
-        
-        # ถ้าสำเร็จ คืนค่า True และ "OK"
-        return True, "OK"
-        
-    except LineBotApiError as e:
-        message = f"Error {e.status_code}: {e.error.message}"
-        print(f"  -> FAILED with LineBotApiError: {message}")
-        return False, message
-    except Exception as e:
-        message = f"Unexpected Error: {str(e)}"
-        print(f"  -> FAILED with Exception: {message}")
-        return False, message
-
-
+        resp = sess.get(api_url, headers=headers, timeout=sess.request_timeout)
+        if resp.status_code == 200:
+            return True, "OK"
+        else:
+            # ป้องกันกรณี body ไม่ใช่ JSON
+            try:
+                err = resp.json().get("message", "Unknown API Error")
+            except Exception:
+                err = resp.text[:200] if resp.text else "Unknown API Error"
+            return False, f"API Error {resp.status_code}: {err}"
+    except requests.RequestException as e:
+        return False, f"Network Error: {type(e).__name__}"
 
 def check_single_oa_webhook(account):
     """
-    ตรวจสอบ Webhook และคืนค่าเป็น (is_ok: bool, message: str)
-    ฟังก์ชันนี้จะไม่แก้ไข object account อีกต่อไป
+    ตรวจสอบการตั้งค่า Webhook (SYNC)
+    - ดึงค่า endpoint/active จาก LINE (ถ้า token มีสิทธิ์)
+    - เทียบกับ URL ที่เราคาดหวังจาก APP_BASE_URL + webhook_path
+    คืนค่า: (is_ok: bool, message: str)
     """
-    print(f"Checking OA Webhook for: {account.name} (using requests)...")
-    
-    APP_BASE_URL = os.environ.get('APP_BASE_URL')
+    print(f"Checking OA Webhook for: {account.name}...")
+    APP_BASE_URL = os.environ.get("APP_BASE_URL")
     if not APP_BASE_URL:
         return False, "Config Error: APP_BASE_URL not set"
-    
-    path = account.webhook_path
+
+    path = getattr(account, "webhook_path", None)
     if not path:
         return False, "Config Error: webhook_path is empty"
 
     CORRECT_WEBHOOK_URL = f"{APP_BASE_URL}/{path}/callback"
-    
-    headers = {'Authorization': f'Bearer {account.channel_access_token}'}
-    line_api_url = 'https://api.line.me/v2/bot/channel/webhook/endpoint'
+    headers = {"Authorization": f"Bearer {account.channel_access_token}"}
+    line_api_url = "https://api.line.me/v2/bot/channel/webhook/endpoint"
 
+    sess = _requests_session()
     try:
-        response = requests.get(line_api_url, headers=headers, timeout=10)
-        
-        if response.status_code == 200:
-            webhook_info = response.json()
-            configured_url = webhook_info.get('endpoint')
-            is_enabled = webhook_info.get('active', False)
+        resp = sess.get(line_api_url, headers=headers, timeout=sess.request_timeout)
+        if resp.status_code == 200:
+            # ตัวอย่างตามโค้ดเดิมของคุณ: คาดว่าได้ {"active": bool, "endpoint": "..."}
+            try:
+                webhook_info = resp.json()
+            except Exception:
+                return False, "Invalid JSON from LINE API"
 
+            is_enabled = webhook_info.get("active", False)
             if not is_enabled:
                 return False, "Webhook is disabled"
-            elif configured_url != CORRECT_WEBHOOK_URL:
-                return False, "URL Mismatch"
-            else:
-                return True, "OK"
-                
-        elif response.status_code == 404:
-            return False, "Webhook Not Set"
-        else:
-            error_details = response.json().get('message', 'Unknown API Error')
-            return False, f"API Error {response.status_code}: {error_details}"
 
-    except requests.exceptions.RequestException as e:
+            configured_url = webhook_info.get("endpoint")
+            if configured_url != CORRECT_WEBHOOK_URL:
+                return False, "URL Mismatch"
+
+            return True, "OK"
+
+        elif resp.status_code == 404:
+            # กรณี LINE แจ้งว่าไม่มีการตั้ง webhook
+            return False, "Webhook Not Set"
+
+        else:
+            try:
+                err = resp.json().get("message", "Unknown API Error")
+            except Exception:
+                err = resp.text[:200] if resp.text else "Unknown API Error"
+            return False, f"API Error {resp.status_code}: {err}"
+
+    except requests.RequestException as e:
         return False, f"Network Error: {type(e).__name__}"
-    
-    
-    
+
 def run_full_health_check(account):
     """
-    ฟังก์ชันหลักสำหรับเรียกตรวจสอบ OA ทั้งสถานะ Token และ Webhook
-    และอัปเดตข้อมูลลงใน object `account` โดยตรง
-    ฟังก์ชันนี้จะไม่ commit() เอง แต่จะรอให้ caller เป็นคน commit
+    ฟังก์ชันหลักสำหรับเรียกตรวจสอบ OA (SYNC) และอัปเดตข้อมูลลงใน object (แต่ไม่ commit)
+    - รวมผล Token + Webhook
+    - อัปเดต: is_active, last_check_status_message, last_check_timestamp
     """
-    # 1. เรียกตรวจสอบสถานะ Token และ Webhook
     token_ok, token_msg = check_single_oa_status(account)
     webhook_ok, webhook_msg = check_single_oa_webhook(account)
 
-    # 2. ประเมินผลลัพธ์โดยรวม
-    # สถานะโดยรวมจะ Active (is_active = True) ก็ต่อเมื่อทั้งสองอย่างทำงานถูกต้อง (OK)
-    account.is_active = token_ok and webhook_ok
+    account.is_active = bool(token_ok and webhook_ok)
 
-    # 3. สร้างข้อความสรุปผล (Status Message)
-    # เพื่อให้แสดงผลในหน้าเว็บได้ง่าย
-    status_parts = []
-    if token_ok:
-        status_parts.append("Token: OK")
-    else:
-        status_parts.append(f"Token: {token_msg}") # แสดงข้อความ Error ของ Token
-
-    if webhook_ok:
-        status_parts.append("Webhook: OK")
-    else:
-        status_parts.append(f"Webhook: {webhook_msg}") # แสดงข้อความ Error ของ Webhook
-
+    status_parts = [f"Token: {token_msg}", f"Webhook: {webhook_msg}"]
     account.last_check_status_message = ", ".join(status_parts)
 
-    # 4. อัปเดตเวลาที่ตรวจสอบล่าสุด
     account.last_check_timestamp = datetime.now(timezone.utc)
 
-    print(f"  -> Health check for '{account.name}' completed. Overall Status: {'Active' if account.is_active else 'Inactive'}")
-    print(f"     Details: {account.last_check_status_message}")    
+    print(
+        f"  -> Health check for '{account.name}' completed. "
+        f"Overall Status: {'Active' if account.is_active else 'Inactive'}"
+    )
