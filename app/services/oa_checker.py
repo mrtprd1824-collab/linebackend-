@@ -58,15 +58,19 @@ def check_single_oa_webhook(account):
     คืนค่า: (is_ok: bool, message: str)
     """
     print(f"Checking OA Webhook for: {account.name}...")
-    APP_BASE_URL = os.environ.get("APP_BASE_URL")
-    if not APP_BASE_URL:
+    base_url = os.environ.get("APP_BASE_URL", "").strip()
+    if not base_url:
         return False, "Config Error: APP_BASE_URL not set"
+
+    base_url = base_url.rstrip("/")
 
     path = getattr(account, "webhook_path", None)
     if not path:
         return False, "Config Error: webhook_path is empty"
 
-    CORRECT_WEBHOOK_URL = f"{APP_BASE_URL}/{path}/callback"
+    path = str(path).strip("/")
+
+    CORRECT_WEBHOOK_URL = f"{base_url}/{path}/callback"
     headers = {"Authorization": f"Bearer {account.channel_access_token}"}
     line_api_url = "https://api.line.me/v2/bot/channel/webhook/endpoint"
 
@@ -86,7 +90,7 @@ def check_single_oa_webhook(account):
 
             configured_url = webhook_info.get("endpoint")
             if configured_url != CORRECT_WEBHOOK_URL:
-                return False, "URL Mismatch"
+                return False, f"URL Mismatch (expected {CORRECT_WEBHOOK_URL}, got {configured_url})"
 
             return True, "OK"
 
