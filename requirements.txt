@@ -1,23 +1,46 @@
-# requirements.txt (Final Version with All Libraries)
+# Web framework & extensions
 Flask==2.3.3
+Werkzeug==2.3.7
 Flask-Login==0.6.3
 Flask-Migrate==4.0.5
 Flask-SQLAlchemy==3.1.1
+
+# Realtime (Socket.IO over Eventlet)
 Flask-SocketIO==5.3.6
-python-socketio==5.11.1
-Werkzeug==2.3.7
+python-socketio==5.11.3
+python-engineio==4.8.2
+eventlet==0.36.1
+greenlet==3.0.3
+
+# WSGI server
+gunicorn==21.2.0
+
+# Database & migrations
 SQLAlchemy==2.0.43
-line-bot-sdk==3.19.1
+alembic==1.13.1
+psycopg2-binary==2.9.9
+# ถ้าใช้ PostgreSQL ให้คงบรรทัดนี้ไว้
+
+# HTTP (SYNC)
 requests==2.32.3
-python-dotenv==1.0.0
-click==8.1.7
-boto3==1.28.60
-gevent>=24.2.1
-gevent-websocket==0.10.1
+
+# LINE SDK
+line-bot-sdk==3.19.1
+
+# Forms / CSRF
 Flask-WTF==1.2.1
 WTForms==3.1.2
 WTForms-SQLAlchemy==0.3
+
+# AWS S3
+boto3==1.28.60
+
+# Utils / Env
+python-dotenv==1.0.1
+click==8.1.7
 pytz==2024.1
-psycopg2-binary
-gunicorn
-eventlet
+
+# 🚫 DO NOT INSTALL with eventlet stack:
+# gevent
+# gevent-websocket
+# httpx
