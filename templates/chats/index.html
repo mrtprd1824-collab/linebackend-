@@ -66,8 +66,9 @@
                     class="rounded-circle me-3" style="width: 50px; height: 50px;">
 
                 <div class="flex-grow-1">
+                    {% set display_name = conv.user.nickname or conv.user.display_name %}
                     <div class="d-flex w-100 justify-content-between">
-                        <strong class="mb-1">{{ conv.user.nickname or conv.user.display_name }}</strong>
+                        <strong class="mb-1">{{ display_name|truncate(20, True, '...') }}</strong>
                         <div>
                             <small class="text-danger me-2 unread-timer"
                                 id="timer-{{ conv.user.user_id }}-{{ conv.user.line_account_id }}"></small>

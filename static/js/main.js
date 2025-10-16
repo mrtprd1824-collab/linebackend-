@@ -61,6 +61,16 @@ function formatSidebarTimestamp(isoString) {
     }
 }
 
+function truncateDisplayName(name, maxLength = 20) {
+    if (!name) return '';
+    const normalized = String(name);
+    if (normalized.length <= maxLength) {
+        return normalized;
+    }
+    const sliceLength = Math.max(maxLength - 3, 0);
+    return sliceLength > 0 ? normalized.slice(0, sliceLength) + '...' : normalized.slice(0, maxLength);
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     // 1. STATE & VARIABLES
     window.failedMessageQueue = {};
@@ -401,7 +411,7 @@ document.addEventListener('DOMContentLoaded', function () {
         <img src="${convData.picture_url || defaultAvatar}" alt="Profile" class="rounded-circle me-3" style="width: 50px; height: 50px;">
         <div class="flex-grow-1">
             <div class="d-flex w-100 justify-content-between">
-                <strong class="mb-1">${convData.display_name}</strong>
+                <strong class="mb-1">${truncateDisplayName(convData.display_name)}</strong>
                 <div>${timerHTML}${unreadBadge}</div>
             </div>
             <div class="d-flex justify-content-between align-items-center">
@@ -876,7 +886,7 @@ document.addEventListener('DOMContentLoaded', function () {
                  alt="Profile" class="rounded-circle me-3" style="width: 50px; height: 50px;">
             <div class="flex-grow-1">
                 <div class="d-flex w-100 justify-content-between">
-                    <strong class="mb-1">${user.display_name}</strong>
+                    <strong class="mb-1">${truncateDisplayName(user.display_name)}</strong>
                     ${unreadBadge}
                 </div>
                 <small class="text-muted">@${user.oa_name}</small>
