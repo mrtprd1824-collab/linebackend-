@@ -1,6 +1,27 @@
-import eventlet
-eventlet.monkey_patch()
-print("1 monkey patched", flush=True)
+import os
+
+_EVENTLET_PATCHED = False
+
+
+def _monkey_patch_if_needed():
+    """Apply eventlet monkey patching only when explicitly enabled."""
+    global _EVENTLET_PATCHED
+    if _EVENTLET_PATCHED:
+        return True
+    if os.environ.get("ENABLE_EVENTLET_PATCH", "1") == "1":
+        import eventlet  # imported lazily to avoid touching gunicorn master
+        eventlet.monkey_patch()
+        print("1 monkey patched", flush=True)
+        _EVENTLET_PATCHED = True
+        return True
+    print("1 eventlet monkey patch disabled by env", flush=True)
+    return False
+
+
+if __name__ == "__main__":
+    _monkey_patch_if_needed()
+else:
+    print("1 skipping monkey patch during import", flush=True)
 
 # imports ที่ต้องเกิดหลัง monkey_patch เท่านั้น
 print("2 before imports", flush=True)
