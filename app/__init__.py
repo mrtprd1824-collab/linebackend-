@@ -5,7 +5,9 @@ from datetime import timedelta
 from flask_login import current_user
 from config import Config
 from .extensions import db, migrate, login_manager, socketio  # รวมบรรทัดเดียว
+from dotenv import load_dotenv
 
+load_dotenv()
 
 
 
@@ -36,11 +38,9 @@ def create_app():
     migrate.init_app(app, db)
     login_manager.init_app(app)
     use_eventlet = os.environ.get("USE_EVENTLET", "1") == "1"
-
-    if use_eventlet:
-        socketio.init_app(app, async_mode="eventlet")
-    else:
-        socketio.init_app(app, async_mode="threading")
+    socketio.init_app(app, async_mode=("eventlet" if use_eventlet else "threading"))
+    print("USE_EVENTLET =", os.getenv("USE_EVENTLET"))
+    print("Socket.IO async_mode =", socketio.async_mode)
 
     # ให้ Alembic เห็น models
     from . import models
@@ -70,16 +70,14 @@ def create_app():
 
     @app.get("/_env_check")
     def _env_check():
-        import os
-        def mask(v): 
+        def mask(v):
             return (v[:4] + "..." + v[-3:]) if v and len(v) > 8 else v
-
         return {
             "REGION": app.config.get("AWS_DEFAULT_REGION"),
             "BUCKET": app.config.get("S3_BUCKET_NAME"),
             "PREFIX": app.config.get("S3_PREFIX"),
             "KEY_ID": mask(os.environ.get("AWS_ACCESS_KEY_ID")),
-    }
+        }, 200
 
     @app.context_processor
     def inject_global_notifications():
