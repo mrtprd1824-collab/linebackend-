@@ -9,19 +9,16 @@ def _monkey_patch_if_needed():
     if _EVENTLET_PATCHED:
         return True
     if os.environ.get("ENABLE_EVENTLET_PATCH", "1") == "1":
-        import eventlet  # imported lazily to avoid touching gunicorn master
-        eventlet.monkey_patch()
-        print("1 monkey patched", flush=True)
+        import eventlet  # imported lazily so disabling stays cheap
+        eventlet.monkey_patch(os=False)
+        print("1 monkey patched (os=False)", flush=True)
         _EVENTLET_PATCHED = True
         return True
     print("1 eventlet monkey patch disabled by env", flush=True)
     return False
 
 
-if __name__ == "__main__":
-    _monkey_patch_if_needed()
-else:
-    print("1 skipping monkey patch during import", flush=True)
+_monkey_patch_if_needed()
 
 # imports ที่ต้องเกิดหลัง monkey_patch เท่านั้น
 print("2 before imports", flush=True)
