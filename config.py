@@ -22,8 +22,12 @@ class Config:
     
     AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID")
     AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY")
-    AWS_DEFAULT_REGION = os.environ.get("AWS_DEFAULT_REGION") or "ap-southeast-1"
-    S3_BUCKET_NAME = os.environ.get("S3_BUCKET_NAME")
+    AWS_DEFAULT_REGION = (
+        os.environ.get("AWS_DEFAULT_REGION")
+        or os.environ.get("S3_BUCKET_REGION")
+        or "ap-southeast-1"
+    )
+    S3_BUCKET_NAME = os.environ.get("S3_BUCKET_NAME") or os.environ.get("AWS_S3_BUCKET")
     S3_PREFIX = os.environ.get("S3_PREFIX", "uploads/")
     
     MAX_CONTENT_LENGTH = 25 * 1024 * 1024

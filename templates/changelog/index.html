@@ -1,0 +1,117 @@
+{# templates/changelog/index.html - แสดงบันทึกการเปลี่ยนแปลงทั้งหมดแบบ accordion #}
+{% extends "base.html" %}
+
+{% block title %}บันทึกการเปลี่ยนแปลง | {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h1 class="h3 mb-1">บันทึกการเปลี่ยนแปลง</h1>
+            <p class="text-muted mb-0">ติดตามอัปเดตจากทีมงานได้ที่นี่ คลิกเพื่อดูรายละเอียดเพิ่มเติมในแต่ละหัวข้อ</p>
+        </div>
+        {% if current_user.is_authenticated and current_user.is_admin %}
+        <a class="btn btn-primary" href="{{ url_for('changelog_bp.new') }}">
+            <i class="bi bi-plus-lg me-1"></i> เพิ่มบันทึก
+        </a>
+        {% endif %}
+    </div>
+
+    {% if grouped_logs %}
+        {% for group in grouped_logs %}
+        <div class="row g-3 align-items-start mb-4">
+            <div class="col-lg-3">
+                <div class="text-lg-end text-muted">
+                    <div class="fw-semibold text-dark">{{ group.date_label }}</div>
+                    <div class="small">{{ group.relative }}</div>
+                </div>
+            </div>
+            <div class="col-lg-9">
+                {% set group_id = loop.index %}
+                <div class="accordion" id="accordion-{{ group_id }}">
+                    {% for item in group.entries %}
+                    {% set item_id = loop.index %}
+                    <div class="accordion-item border-0 shadow-sm mb-3 rounded-3 overflow-hidden">
+                        <h2 class="accordion-header" id="heading-{{ group_id }}-{{ item_id }}">
+                            <button class="accordion-button d-flex justify-content-between align-items-center fw-semibold"
+                                type="button" data-bs-toggle="collapse"
+                                data-bs-target="#collapse-{{ group_id }}-{{ item_id }}"
+                                aria-expanded="{{ 'true' if loop.first and group_id == 1 else 'false' }}"
+                                aria-controls="collapse-{{ group_id }}-{{ item_id }}">
+                                <span>
+                                    {{ item.title }}
+                                    {% if item.is_new %}
+                                    <span class="badge bg-success ms-2">ใหม่!</span>
+                                    {% endif %}
+                                </span>
+                            </button>
+                        </h2>
+                        <div id="collapse-{{ group_id }}-{{ item_id }}"
+                            class="accordion-collapse collapse {% if loop.first and group_id == 1 %}show{% endif %}"
+                            data-bs-parent="#accordion-{{ group_id }}">
+                            <div class="accordion-body">
+                                <div class="lead mb-3">{{ item.body_html }}</div>
+                                {% if item.image_url %}
+                                <img src="{{ item.image_url }}" alt="changelog image" class="img-fluid rounded mb-3 shadow-sm">
+                                {% endif %}
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">
+                                        อัปเดตเมื่อ {{ item.created_at.strftime("%d/%m/%Y %H:%M") }} น.
+                                    </small>
+                                    {% if current_user.is_authenticated and current_user.is_admin %}
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('changelog_bp.edit', log_id=item.id) }}" class="btn btn-outline-secondary">
+                                            <i class="bi bi-pencil-square"></i> แก้ไข
+                                        </a>
+                                        <form action="{{ url_for('changelog_bp.delete', log_id=item.id) }}" method="post"
+                                            onsubmit="return confirm('ยืนยันการลบรายการนี้หรือไม่?');">
+                                            <button type="submit" class="btn btn-outline-danger">
+                                                <i class="bi bi-trash"></i> ลบ
+                                            </button>
+                                        </form>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+    <div class="alert alert-info" role="alert">
+        ยังไม่มีบันทึกการเปลี่ยนแปลงในขณะนี้
+    </div>
+    {% endif %}
+
+    {% if pagination.pages > 1 %}
+    <nav aria-label="Changelog pagination">
+        <ul class="pagination justify-content-center">
+            <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('changelog_bp.index', page=pagination.prev_num) }}"
+                    aria-label="Previous">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+            {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                {% if page_num %}
+                    <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                        <a class="page-link" href="{{ url_for('changelog_bp.index', page=page_num) }}">{{ page_num }}</a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link">…</span></li>
+                {% endif %}
+            {% endfor %}
+            <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('changelog_bp.index', page=pagination.next_num) }}"
+                    aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}

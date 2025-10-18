@@ -49,7 +49,6 @@
                         </button>
                     </div>
                 </form>
-                </form>
             </div>
         </div>
 
@@ -61,21 +60,15 @@
     // 1. เลือกฟอร์มและปุ่มยืนยัน
     const groupForm = document.querySelector('form[action="{{ url_for('auth.select_groups') }}"]');
 
-    // 2. เพิ่ม Event Listener ให้กับฟอร์มเมื่อมีการกด submit
-    groupForm.addEventListener('submit', function (event) {
-        // 3. ค้นหา checkbox ทั้งหมดที่ถูก "ติ๊ก" อยู่
-        const checkedBoxes = document.querySelectorAll('input[name="group_ids"]:checked');
-
-        // 4. ตรวจสอบว่ามีอันที่ถูกติ๊กหรือไม่
-        if (checkedBoxes.length === 0) {
-            // 5. ถ้าไม่มีเลย ให้หยุดการส่งฟอร์ม
-            event.preventDefault();
-
-            // 6. แสดงข้อความแจ้งเตือน
-            alert('กรุณาเลือกกลุ่มการทำงานอย่างน้อย 1 กลุ่มครับ');
-        }
-        // ถ้ามี checkbox ถูกเลือกอย่างน้อย 1 อัน โค้ดจะทำงานตามปกติ (ส่งฟอร์ม)
-    });
+    if (groupForm) {
+        groupForm.addEventListener('submit', function (event) {
+            const checkedBoxes = document.querySelectorAll('input[name="group_ids"]:checked');
+            if (checkedBoxes.length === 0) {
+                event.preventDefault();
+                alert('กรุณาเลือกกลุ่มการทำงานอย่างน้อย 1 กลุ่มครับ');
+            }
+        });
+    }
 </script>
 {% endblock %}
 

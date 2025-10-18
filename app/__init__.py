@@ -48,6 +48,7 @@ def create_app():
     # import และ register blueprints (import ข้างในกันวงกลม)
     from .blueprints.auth.routes import bp as auth_bp
     from .blueprints.admin.routes import bp as admin_bp
+    from .blueprints.changelog import bp as changelog_bp
     from .blueprints.line_admin import bp as line_admin_bp
     from .blueprints.line_webhook import bp as line_webhook_bp
     from .blueprints.chats import bp as chats_bp
@@ -60,6 +61,7 @@ def create_app():
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(changelog_bp)
     app.register_blueprint(line_admin_bp)
     app.register_blueprint(line_webhook_bp)
     app.register_blueprint(chats_bp) 

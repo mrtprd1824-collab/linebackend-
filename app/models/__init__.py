@@ -1,4 +1,4 @@
-from .extensions import db, login_manager
+from ..extensions import db, login_manager
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta, timezone
@@ -24,6 +24,9 @@ tags_users = db.Table('tags_users',
 )
 
 # --- Models ---
+
+from .changelog import ChangeLog  # noqa: E402  # ให้ blueprint อื่นๆ import ได้ง่าย
+
 
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)

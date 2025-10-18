@@ -1,0 +1,127 @@
+{# templates/changelog/form.html - ฟอร์มเพิ่ม/แก้ไขบันทึกการเปลี่ยนแปลง #}
+{% extends "base.html" %}
+
+{% block title %}{{ 'แก้ไข' if editing else 'เพิ่ม' }}บันทึกการเปลี่ยนแปลง | {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h4 mb-0">{{ 'แก้ไข' if editing else 'สร้าง' }}บันทึกการเปลี่ยนแปลง</h1>
+        <a href="{{ url_for('changelog_bp.index') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> ย้อนกลับ
+        </a>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <form method="post" action="{{ form_action }}" enctype="multipart/form-data" id="changelog-form">
+                {{ form.csrf_token }}
+                <div class="mb-3">
+                    <label class="form-label" for="{{ form.title.id }}">หัวข้อ</label>
+                    {{ form.title(class="form-control", placeholder="เช่น เพิ่มฟีเจอร์ใหม่, ปรับปรุงระบบ...") }}
+                    {% for error in form.title.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label" for="{{ form.body.id }}">รายละเอียด</label>
+                    {{ form.body(class="form-control", rows="8", placeholder="บอกรายละเอียดการอัปเดต สามารถใส่ HTML พื้นฐานได้") }}
+                    <div class="form-text">รองรับแท็กพื้นฐาน เช่น &lt;strong&gt;, &lt;em&gt;, &lt;ul&gt;, &lt;li&gt;, &lt;br&gt;</div>
+                    {% for error in form.body.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label" for="{{ form.image_url.id }}">ลิงก์รูปภาพ</label>
+                    <div class="input-group">
+                        {{ form.image_url(class="form-control", placeholder="https://...") }}
+                        <button class="btn btn-outline-primary" type="button" id="upload-btn">
+                            <i class="bi bi-cloud-upload"></i> อัปโหลดขึ้น S3
+                        </button>
+                    </div>
+                    {% for error in form.image_url.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                    {% endfor %}
+                    <div class="form-text">หรือวาง URL รูปภาพโดยตรง</div>
+                    <input type="file" id="upload-input" class="d-none" accept="image/png,image/jpeg,image/webp">
+                </div>
+
+                <div class="mb-4" id="image-preview" {% if not form.image_url.data %}style="display:none"{% endif %}>
+                    <p class="text-muted small mb-1">ตัวอย่างรูปภาพ</p>
+                    <img src="{{ form.image_url.data }}" alt="preview" class="img-fluid rounded shadow-sm">
+                </div>
+
+                <div class="d-flex justify-content-end gap-2">
+                    <a href="{{ url_for('changelog_bp.index') }}" class="btn btn-outline-secondary">ยกเลิก</a>
+                    {{ form.submit(class="btn btn-primary") }}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const uploadBtn = document.getElementById('upload-btn');
+        const uploadInput = document.getElementById('upload-input');
+        const imageUrlInput = document.getElementById('{{ form.image_url.id }}');
+        const previewContainer = document.getElementById('image-preview');
+        const previewImg = previewContainer.querySelector('img');
+        const formEl = document.getElementById('changelog-form');
+
+        const csrfToken = formEl.querySelector('input[name="csrf_token"]').value;
+
+        const showPreview = (url) => {
+            previewImg.src = url;
+            previewContainer.style.display = 'block';
+        };
+
+        const handleUpload = async (file) => {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                uploadBtn.disabled = true;
+                uploadBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>กำลังอัปโหลด';
+
+                const response = await fetch('{{ url_for("changelog_bp.upload") }}', {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrfToken },
+                    body: formData
+                });
+
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || 'สามารถอัปโหลดได้เฉพาะไฟล์รูปภาพขนาดไม่เกิน 5MB');
+                }
+
+                imageUrlInput.value = data.url;
+                showPreview(data.url);
+            } catch (error) {
+                console.error(error);
+                alert(error.message || 'เกิดข้อผิดพลาดในการอัปโหลดไฟล์');
+            } finally {
+                uploadBtn.disabled = false;
+                uploadBtn.innerHTML = '<i class="bi bi-cloud-upload"></i> อัปโหลดขึ้น S3';
+                uploadInput.value = '';
+            }
+        };
+
+        uploadBtn.addEventListener('click', () => uploadInput.click());
+        uploadInput.addEventListener('change', () => {
+            if (uploadInput.files && uploadInput.files[0]) {
+                handleUpload(uploadInput.files[0]);
+            }
+        });
+
+        if (imageUrlInput.value) {
+            showPreview(imageUrlInput.value);
+        }
+    });
+</script>
+{% endblock %}
