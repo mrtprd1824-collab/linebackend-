@@ -1,0 +1,128 @@
+{# templates/stats/index.html - หน้า Dashboard แสดงสถิติการสนทนา #}
+{% extends "base.html" %}
+
+{% block title %}สถิติ | {{ super() }}{% endblock %}
+
+{% block extra_css %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/stats.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container py-4" id="stats-page">
+    <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0">สถิติ</h1>
+        <span class="text-muted small" id="stats-range-display"></span>
+    </div>
+
+    <form class="row g-3 align-items-end mb-4" id="stats-filter-form">
+        <div class="col-12 col-md-3">
+            <label for="filter-start" class="form-label">เริ่ม</label>
+            <input type="datetime-local" class="form-control" id="filter-start" name="start">
+        </div>
+        <div class="col-12 col-md-3">
+            <label for="filter-end" class="form-label">สิ้นสุด</label>
+            <input type="datetime-local" class="form-control" id="filter-end" name="end">
+        </div>
+        <div class="col-12 col-md-3 col-lg-2">
+            <label for="filter-oa" class="form-label">OA ID</label>
+            <input type="number" min="1" class="form-control" id="filter-oa" name="oa_id" placeholder="ทั้งหมด">
+        </div>
+        <div class="col-12 col-md-3 col-lg-2">
+            <button type="submit" class="btn btn-primary w-100" id="stats-refresh-btn">
+                <i class="bi bi-arrow-repeat me-1"></i> รีเฟรช
+            </button>
+        </div>
+        <div class="col-12 col-lg-2">
+            <button type="button" class="btn btn-outline-secondary w-100" id="stats-clear-btn">
+                ล้างตัวกรอง
+            </button>
+        </div>
+    </form>
+
+    <div class="alert alert-danger d-none" role="alert" id="stats-error-alert"></div>
+
+    <div class="row g-3 mb-4" id="stats-kpi-cards">
+        <div class="col-12 col-md-4">
+            <div class="card kpi-card h-100">
+                <div class="card-body">
+                    <h2 class="card-title h6 text-muted">ลูกค้าเข้าวันนี้</h2>
+                    <p class="display-6 mb-0" id="kpi-customers-today">-</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-4">
+            <div class="card kpi-card h-100">
+                <div class="card-body">
+                    <h2 class="card-title h6 text-muted">ลูกค้าแอคทีฟ</h2>
+                    <p class="display-6 mb-0" id="kpi-active-customers">-</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-4">
+            <div class="card kpi-card h-100">
+                <div class="card-body">
+                    <h2 class="card-title h6 text-muted">ลูกค้าบล็อก</h2>
+                    <p class="display-6 mb-0" id="kpi-blocked-customers">-</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-12 col-lg-6">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h2 class="h6 mb-0">อันดับตาม OA</h2>
+                    <span class="text-muted small" id="stats-oa-count"></span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped mb-0">
+                        <thead>
+                            <tr>
+                                <th scope="col">OA</th>
+                                <th scope="col" class="text-end">ลูกค้าที่ทักมา (คน)</th>
+                                <th scope="col" class="text-end">ข้อความเข้า</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stats-oa-tbody">
+                            <tr>
+                                <td colspan="3" class="text-center text-muted py-4">ยังไม่มีข้อมูล</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-lg-6">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h2 class="h6 mb-0">อันดับตามแอดมิน</h2>
+                    <span class="text-muted small" id="stats-admin-count"></span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped mb-0">
+                        <thead>
+                            <tr>
+                                <th scope="col">แอดมิน</th>
+                                <th scope="col" class="text-end">ลูกค้าที่ตอบ (คน)</th>
+                                <th scope="col" class="text-end">ข้อความออก</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stats-admin-tbody">
+                            <tr>
+                                <td colspan="3" class="text-center text-muted py-4">ยังไม่มีข้อมูล</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script src="{{ url_for('static', filename='js/stats.js') }}"></script>
+{% endblock %}

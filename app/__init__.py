@@ -56,6 +56,7 @@ def create_app():
     from .blueprints.Cron_Job.routes import cron_bp
     from .blueprints.tags import bp as tags_bp
     from .blueprints.search import bp as search_bp
+    from .blueprints.stats import bp as stats_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(admin_bp)
@@ -67,6 +68,7 @@ def create_app():
     app.register_blueprint(cron_bp)
     app.register_blueprint(tags_bp)
     app.register_blueprint(search_bp)
+    app.register_blueprint(stats_bp)
 
     @app.get("/_env_check")
     def _env_check():

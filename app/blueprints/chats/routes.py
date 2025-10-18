@@ -69,6 +69,34 @@ def truncate_text(text, length=10):
         return text[:length] + '...'
     return text
 
+BANGKOK_TZ = timezone(timedelta(hours=7))
+
+
+def _parse_iso_to_bkk(raw: str) -> datetime:
+    """แปลงสตริง ISO8601 ให้เป็นเวลาที่ผูกกับโซน Bangkok"""
+    cleaned = raw.strip()
+    if cleaned.endswith("Z"):
+        cleaned = cleaned[:-1] + "+00:00"
+    dt = datetime.fromisoformat(cleaned)
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=BANGKOK_TZ)
+    return dt.astimezone(BANGKOK_TZ)
+
+
+def _resolve_time_window(start_raw: str | None, end_raw: str | None, fallback_days: int = 14) -> tuple[datetime, datetime]:
+    """เลือกช่วงเวลาที่ใช้กรอง โดยดีฟอลต์ย้อนหลัง fallback_days วัน (โซน Bangkok)"""
+    now_bkk = datetime.now(BANGKOK_TZ)
+    if start_raw and end_raw:
+        start_bkk = _parse_iso_to_bkk(start_raw)
+        end_bkk = _parse_iso_to_bkk(end_raw)
+        if end_bkk <= start_bkk:
+            end_bkk = start_bkk + timedelta(days=1)
+        return start_bkk, end_bkk
+
+    end_bkk = now_bkk
+    start_bkk = end_bkk - timedelta(days=fallback_days)
+    return start_bkk, end_bkk
+
 def truncate_text(text, length=10):
     if text and len(text) > length:
         return text[:length] + '...'
@@ -496,21 +524,35 @@ def update_details(id):
 def search_messages():
     q = request.args.get("q", "").strip()
     oa_id = request.args.get("oa", type=int)
+    start_raw = request.args.get("start")
+    end_raw = request.args.get("end")
+    limit = request.args.get("limit", default=50, type=int)
+    limit = max(1, min(limit, 200))
 
     if not q:
         flash("กรุณากรอกคำค้นหา", "warning")
         return redirect(url_for("chats.index"))
 
-    query = LineMessage.query
-    if oa_id:
-        query = query.filter_by(line_account_id=oa_id)
+    start_bkk, end_bkk = _resolve_time_window(start_raw, end_raw)
+    start_utc = start_bkk.astimezone(timezone.utc)
+    end_utc = end_bkk.astimezone(timezone.utc)
 
-    results = (
-        query.filter(LineMessage.message_text.ilike(f"%{q}%"))
+    pattern = f"%{q}%"
+
+    # ใช้ gin_message_text_trgm + idx_line_message_oa_ts_* สำหรับค้นหา/เรียงตามเวลา
+    query = (
+        LineMessage.query.filter(LineMessage.message_type == "text")
+        .filter(LineMessage.timestamp >= start_utc)
+        .filter(LineMessage.timestamp < end_utc)
+        .filter(LineMessage.message_text.ilike(pattern))
         .order_by(LineMessage.timestamp.desc())
-        .limit(50)
-        .all()
     )
+
+    if oa_id:
+        query = query.filter(LineMessage.line_account_id == oa_id)
+
+    results = query.limit(limit).all()
+
     return render_template(
         "chats/search_results.html",
         query=q,
@@ -770,13 +812,16 @@ def search_conversations():
     if not query_term:
         return jsonify([])
 
+    pattern = f"%{query_term}%"
+
+    # ใช้ gin_line_user_name_trgm + idx_line_user_oa_lastmsg สำหรับค้นหาผู้ใช้ที่อัปเดตล่าสุด
     user_query = LineUser.query.filter(
         or_(
-            LineUser.nickname.ilike(f"%{query_term}%"),
-            LineUser.phone.ilike(f"%{query_term}%"),
-            LineUser.user_id.ilike(f"%{query_term}%")
+            LineUser.nickname.ilike(pattern),
+            LineUser.phone.ilike(pattern),
+            LineUser.user_id.ilike(pattern)
         )
-    )
+    ).order_by(LineUser.last_message_at.desc())
 
     if selected_group_ids:
         user_query = user_query.join(LineAccount).filter(LineAccount.groups.any(OAGroup.id.in_(selected_group_ids)))

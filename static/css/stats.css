@@ -1,0 +1,22 @@
+/* static/css/stats.css - ปรับหน้าตา KPI และตารางของหน้าสถิติ */
+#stats-page .kpi-card .display-6 {
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+#stats-page .kpi-card .card-body {
+    padding: 1.5rem;
+}
+
+#stats-page table tbody tr td {
+    vertical-align: middle;
+}
+
+#stats-page .text-muted.small {
+    font-variant-numeric: tabular-nums;
+}
+
+#stats-page .loading-row td {
+    color: #6c757d;
+    font-style: italic;
+}
