@@ -87,6 +87,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let currentFullNote = '';
     let currentUserTags = [];
     window.currentUserPictureUrl = null;
+    let markReadPromise = null;
 
 
 
@@ -178,6 +179,68 @@ document.addEventListener('DOMContentLoaded', function () {
                 timerElement.textContent = formatTime(secondsDiff);
             }
         });
+    }
+
+    function clearUnreadIndicators(userId, oaId) {
+        const userLink = document.querySelector(`.list-group-item-action[data-userid="${userId}"][data-oaid="${oaId}"]`);
+        if (!userLink) {
+            return;
+        }
+
+        userLink.removeAttribute('data-unread-timestamp');
+
+        const timerElement = userLink.querySelector('.unread-timer');
+        if (timerElement) {
+            timerElement.textContent = '';
+            timerElement.classList.add('text-muted', 'timer-frozen');
+            timerElement.classList.remove('text-danger');
+        }
+
+        const unreadBadge = userLink.querySelector('.badge.bg-danger.rounded-pill');
+        if (unreadBadge) {
+            unreadBadge.remove();
+        }
+    }
+
+    async function markCurrentChatAsRead(triggerSource = 'auto') {
+        if (!currentUserId || !currentOaId) {
+            return;
+        }
+
+        if (markReadPromise) {
+            return markReadPromise;
+        }
+
+        clearUnreadIndicators(currentUserId, currentOaId);
+
+        markReadPromise = fetch('/chats/read', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                user_id: currentUserId,
+                oa_id: currentOaId
+            })
+        })
+            .then(async response => {
+                if (!response.ok) {
+                    throw new Error(`Failed to mark chat as read (${response.status})`);
+                }
+                const result = await response.json();
+                if (result && result.success && result.data && !isSearching) {
+                    handleConversationUpdate(result.data);
+                }
+                return result;
+            })
+            .catch(error => {
+                console.error('Auto mark-as-read failed:', error);
+            })
+            .finally(() => {
+                markReadPromise = null;
+            });
+
+        return markReadPromise;
     }
 
     // --- ★★★ ใช้ Listener ชุดใหม่นี้แทนของเก่า ★★★ ---
@@ -543,6 +606,16 @@ document.addEventListener('DOMContentLoaded', function () {
             // 2. ถ้าแชทควรจะแสดงผลในหน้านี้: ให้เรียกใช้ handleConversationUpdate
             // ฟังก์ชันนี้จะลบของเก่า (ถ้ามี) แล้วสร้างของใหม่ใส่เข้าไป ทำให้ข้อมูลเป็นปัจจุบันเสมอ
             handleConversationUpdate(freshData);
+
+            const isCurrentConversation =
+                String(freshData.user_id) === String(currentUserId) &&
+                String(freshData.line_account_id) === String(currentOaId);
+            const hasUnread =
+                (freshData.unread_count && freshData.unread_count > 0) ||
+                Boolean(freshData.last_unread_timestamp);
+            if (isCurrentConversation && hasUnread) {
+                markCurrentChatAsRead('render-update');
+            }
         } else {
             // 3. ถ้าแชท "ไม่ควร" แสดงผลในหน้านี้อีกต่อไป (เช่น สถานะเปลี่ยนไปแล้ว)
             // และถ้าแชทนั้นมีแสดงอยู่ใน Sidebar ของเรา
@@ -583,6 +656,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (isForCurrentChat) {
             appendMessage(messagesContainer, msgData);
+            if (!isAdminMessage) {
+                markCurrentChatAsRead('live-message');
+            }
         }
     });
 

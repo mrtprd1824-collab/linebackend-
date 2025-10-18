@@ -1,4 +1,5 @@
 from flask import abort, request, current_app, jsonify # เพิ่ม abort
+from flask_login import login_required, current_user
 
 # [เพิ่ม] import เครื่องมือ S3 ของคุณ
 from app.services import s3_client
@@ -150,6 +151,7 @@ def callback(webhook_path):
         abort(500, description="Internal Server Error")
     
 @bp.route("/chats/read", methods=["POST"])
+@login_required
 def mark_chat_as_read():
     """Endpoint สำหรับเคลียร์ unread_count เมื่อแอดมินเปิดอ่านแชท"""
     data = request.get_json()
@@ -166,17 +168,26 @@ def mark_chat_as_read():
     user = LineUser.query.filter_by(user_id=str(user_id), line_account_id=int(line_account_id)).first()
     
     if user:
+        now = datetime.utcnow()
+        previous_status = (user.status or "").strip().lower()
         if user.unread_count > 0:
             user.unread_count = 0
-            db.session.commit()
-            print(f"✅ Marked chat for user {user_id} as read.")
-            return jsonify({'success': True, 'message': 'Unread count cleared.'}), 200
-        else:
-            # ไม่ต้องทำอะไรถ้ามันเป็น 0 อยู่แล้ว
-            return jsonify({'success': True, 'message': 'No unread messages to clear.'}), 200
+        if previous_status in ("", "unread", "read"):
+            user.status = "read"
+        user.last_read_timestamp = now
+        user.read_by_admin_id = current_user.id
+        db.session.commit()
+
+        fresh_data = _generate_conversation_data(user.user_id, user.line_account_id)
+        if fresh_data and user.line_account and user.line_account.groups:
+            for group in user.line_account.groups:
+                group_room_name = f'group_{group.id}'
+                socketio.emit('render_conversation_update', fresh_data, to=group_room_name)
+
+        print(f"✅ Marked chat for user {user_id} as read (triggered by {current_user.email}).")
+        return jsonify({'success': True, 'data': fresh_data}), 200
 
     return jsonify({'success': False, 'error': 'User not found'}), 404
-    
 @socketio.on("join")
 def on_join(data):
     """เมื่อ Client ต้องการเข้าร่วมห้องแชท"""
