@@ -13,7 +13,7 @@ def login():
     print(">>> login() called, method:", request.method)  # debug
 
     if current_user.is_authenticated: # ถ้า login แล้ว
-        return redirect(url_for("auth.dashboard")) # ให้ไปที่หน้า dashboard
+        return redirect(url_for("changelog_bp.index")) # ให้ไปที่หน้า changelog
 
     if request.method == "POST":
         email = request.form.get("email")
@@ -22,7 +22,7 @@ def login():
         user = User.query.filter_by(email=email).first()
         if user and user.check_password(password):
             login_user(user)
-            return redirect(url_for("auth.dashboard"))
+            return redirect(url_for("changelog_bp.index"))
         else:
             flash("Invalid email or password", "danger")
             # แก้ไขจุดที่ 1: เพิ่ม redirect หลังจาก flash
