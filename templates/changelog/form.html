@@ -3,8 +3,13 @@
 
 {% block title %}{{ 'แก้ไข' if editing else 'เพิ่ม' }}บันทึกการเปลี่ยนแปลง | {{ super() }}{% endblock %}
 
+{% block extra_css %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/changelog.css') }}">
+{% endblock %}
+
 {% block content %}
-<div class="container py-4">
+<div class="container py-4" id="changelog-form-page">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="h4 mb-0">{{ 'แก้ไข' if editing else 'สร้าง' }}บันทึกการเปลี่ยนแปลง</h1>
         <a href="{{ url_for('changelog_bp.index') }}" class="btn btn-outline-secondary">

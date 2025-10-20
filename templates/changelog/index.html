@@ -3,8 +3,13 @@
 
 {% block title %}บันทึกการเปลี่ยนแปลง | {{ super() }}{% endblock %}
 
+{% block extra_css %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/changelog.css') }}">
+{% endblock %}
+
 {% block content %}
-<div class="container py-4">
+<div class="container py-4" id="changelog-page">
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <div>
             <h1 class="h3 mb-1">บันทึกการเปลี่ยนแปลง</h1>
@@ -33,10 +38,10 @@
                     {% set item_id = loop.index %}
                     <div class="accordion-item border-0 shadow-sm mb-3 rounded-3 overflow-hidden">
                         <h2 class="accordion-header" id="heading-{{ group_id }}-{{ item_id }}">
-                            <button class="accordion-button d-flex justify-content-between align-items-center fw-semibold"
+                            <button class="accordion-button collapsed d-flex justify-content-between align-items-center fw-semibold"
                                 type="button" data-bs-toggle="collapse"
                                 data-bs-target="#collapse-{{ group_id }}-{{ item_id }}"
-                                aria-expanded="{{ 'true' if loop.first and group_id == 1 else 'false' }}"
+                                aria-expanded="false"
                                 aria-controls="collapse-{{ group_id }}-{{ item_id }}">
                                 <span>
                                     {{ item.title }}
@@ -47,7 +52,7 @@
                             </button>
                         </h2>
                         <div id="collapse-{{ group_id }}-{{ item_id }}"
-                            class="accordion-collapse collapse {% if loop.first and group_id == 1 %}show{% endif %}"
+                            class="accordion-collapse collapse"
                             data-bs-parent="#accordion-{{ group_id }}">
                             <div class="accordion-body">
                                 <div class="lead mb-3">{{ item.body_html }}</div>

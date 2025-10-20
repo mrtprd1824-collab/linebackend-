@@ -25,8 +25,13 @@
             <input type="datetime-local" class="form-control" id="filter-end" name="end">
         </div>
         <div class="col-12 col-md-3 col-lg-2">
-            <label for="filter-oa" class="form-label">OA ID</label>
-            <input type="number" min="1" class="form-control" id="filter-oa" name="oa_id" placeholder="ทั้งหมด">
+            <label for="filter-oa" class="form-label">Line OA</label>
+            <select class="form-select" id="filter-oa" name="oa_id">
+                <option value="">ทั้งหมด</option>
+                {% for oa in line_accounts %}
+                <option value="{{ oa.id }}">{{ oa.name }}</option>
+                {% endfor %}
+            </select>
         </div>
         <div class="col-12 col-md-3 col-lg-2">
             <button type="submit" class="btn btn-primary w-100" id="stats-refresh-btn">

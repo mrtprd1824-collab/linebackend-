@@ -4,6 +4,7 @@ from flask_login import login_required
 
 from . import bp
 from app.services.stats_service import fetch_by_admin, fetch_by_oa, fetch_summary
+from app.models import LineAccount
 
 TZ_NAME = "Asia/Bangkok"
 
@@ -22,7 +23,8 @@ def _range_payload(range_pair):
 @login_required
 def index():
     """เรนเดอร์หน้า HTML สำหรับดูสถิติ"""
-    return render_template("stats/index.html")
+    line_accounts = LineAccount.query.order_by(LineAccount.name).all()
+    return render_template("stats/index.html", line_accounts=line_accounts)
 
 
 @bp.get("/api/summary")

@@ -2,8 +2,13 @@
 
 {% block title %}Search Customers{% endblock %}
 
+{% block extra_css %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/search.css') }}">
+{% endblock %}
+
 {% block content %}
-<div class="container mt-4">
+<div class="container mt-4" id="search-page">
     <h2 class="mb-4"><i class="bi bi-search me-2"></i>Search Customers</h2>
 
     <div class="card card-body mb-4">
@@ -24,8 +29,7 @@
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Filter by Tags</label>
-                    <div id="tags-checkbox-container" class="bg-light p-2 border rounded"
-                        style="max-height: 100px; overflow-y: auto;">
+                    <div id="tags-checkbox-container" class="search-tags-box border rounded">
                         <p class="text-muted small m-0">Loading tags...</p>
                     </div>
                 </div>
@@ -65,7 +69,7 @@
             </thead>
             <tbody id="results-tbody">
                 <tr>
-                    <td colspan="6" class="text-center text-muted">Please enter search criteria and press "Search".</td>
+                    <td colspan="7" class="text-center text-muted">Please enter search criteria and press "Search".</td>
                 </tr>
             </tbody>
         </table>

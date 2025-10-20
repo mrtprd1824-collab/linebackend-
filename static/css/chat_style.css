@@ -504,7 +504,6 @@ body {
   --scrollbar-track-bg: var(--main-bg);
   --scrollbar-thumb-bg: #555;
   --scrollbar-thumb-hover-bg: #777;
-  --datetext-changelog: #f8f9fa;
 }
 
 /* --- 2. Applying Colors using Variables --- */

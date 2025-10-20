@@ -1,0 +1,105 @@
+
+
+#search-page .card {
+    background-color: #ffffff;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+#search-page .search-tags-box {
+    background-color: #f8fafc;
+    padding: 0.75rem;
+    max-height: 120px;
+    overflow-y: auto;
+}
+
+#search-page .search-tags-box p {
+    margin-bottom: 0;
+}
+
+#search-page .table thead {
+    background-color: #e2e8f0;
+    color: #0f172a;
+}
+
+[data-bs-theme="dark"] #search-page .table thead.table-light {
+    background-color: #212529;
+    color: #e5e7eb;
+}
+
+#search-page .table thead.table-light {
+    background-color: #e2e8f0;
+    color: #0f172a;
+}
+
+#search-page h3 {
+    color: #0f172a;
+}
+
+#search-page .table tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+#search-page .table tbody tr:hover {
+    background-color: rgba(59, 130, 246, 0.08);
+}
+
+#search-page .badge {
+    font-size: 0.85rem;
+}
+
+/* --- dark mode overrides --- */
+[data-bs-theme="dark"] #search-page .card {
+    background-color: #0f172a;
+    border-color: #1f2937;
+    color: #e5e7eb;
+}
+
+[data-bs-theme="dark"] #search-page .search-tags-box {
+    background-color: #111827;
+    border-color: #1f2937;
+    color: #e5e7eb;
+}
+
+[data-bs-theme="dark"] #search-page .search-tags-box p {
+    color: #cbd5f5;
+}
+
+[data-bs-theme="dark"] #search-page .search-tags-box .form-check-label {
+    color: #e5e7eb;
+}
+
+[data-bs-theme="dark"] #search-page .table thead {
+    background-color: #1f2937;
+    color: #e5e7eb;
+}
+
+[data-bs-theme="dark"] #search-page .table thead.table-light {
+    background-color: #212529;
+    --bs-table-color: #e5e7eb;
+}
+
+[data-bs-theme="dark"] #search-page h3 {
+    color: #e5e7eb;
+}
+
+[data-bs-theme="dark"] #search-page .table tbody tr:hover {
+    background-color: rgba(59, 130, 246, 0.2);
+}
+
+[data-bs-theme="dark"] #search-page .table {
+    color: #e5e7eb;
+}
+
+[data-bs-theme="dark"] #search-page .table tbody tr td {
+    border-color: #e5e7eb;
+}
+
+[data-bs-theme="dark"] #search-page .btn-outline-success {
+    color: #4ade80;
+    border-color: #22c55e;
+}
+
+[data-bs-theme="dark"] #search-page .btn-outline-success:hover {
+    background-color: #22c55e;
+    color: #052e16;
+}
