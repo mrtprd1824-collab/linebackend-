@@ -123,3 +123,41 @@
     background-color: #2563eb;
     border-color: #1d4ed8;
 }
+#changelog-page .attachment-preview-link {
+    color: #0f172a;
+    font-weight: 500;
+}
+
+#changelog-page .attachment-preview-link:hover {
+    color: #1d4ed8;
+    text-decoration: none;
+}
+
+#changelog-form-page #attachment-list .attachment-item {
+    gap: 0.75rem;
+}
+
+#changelog-form-page .attachment-meta a {
+    font-weight: 500;
+}
+
+#changelog-form-page .attachment-hidden-inputs {
+    display: none;
+}
+
+[data-bs-theme="dark"] #changelog-page .attachment-preview-link {
+    color: #bfdbfe;
+}
+
+[data-bs-theme="dark"] #changelog-page .attachment-preview-link:hover {
+    color: #60a5fa;
+}
+
+[data-bs-theme="dark"] #changelog-form-page #attachment-list .attachment-item {
+    background-color: #111827;
+    border-color: #1f2937;
+}
+
+[data-bs-theme="dark"] #changelog-form-page .attachment-meta a {
+    color: #bfdbfe;
+}

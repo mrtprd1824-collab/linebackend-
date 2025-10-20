@@ -58,6 +58,20 @@
                     <img src="{{ form.image_url.data }}" alt="preview" class="img-fluid rounded shadow-sm">
                 </div>
 
+                <div class="mb-4">
+                    <label class="form-label">ไฟล์แนบ</label>
+                    <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                        <button type="button" class="btn btn-outline-primary" id="attachment-upload-btn">
+                            <i class="bi bi-paperclip"></i> อัปโหลดไฟล์
+                        </button>
+                        <small class="text-muted">รองรับ PDF, เอกสาร Office, และรูปภาพ ขนาดไม่เกิน 10MB ต่อไฟล์</small>
+                    </div>
+                    <input type="file" id="attachment-input" class="d-none" accept=".pdf,.doc,.docx,.xls,.xlsx,image/*" multiple>
+                    <ul class="list-group" id="attachment-list">
+                        <li class="list-group-item text-muted small" id="attachment-empty">ยังไม่มีไฟล์แนบ</li>
+                    </ul>
+                </div>
+
                 <div class="d-flex justify-content-end gap-2">
                     <a href="{{ url_for('changelog_bp.index') }}" class="btn btn-outline-secondary">ยกเลิก</a>
                     {{ form.submit(class="btn btn-primary") }}
@@ -126,6 +140,177 @@
 
         if (imageUrlInput.value) {
             showPreview(imageUrlInput.value);
+        }
+
+        const attachmentUploadBtn = document.getElementById('attachment-upload-btn');
+        const attachmentInput = document.getElementById('attachment-input');
+        const attachmentList = document.getElementById('attachment-list');
+        let attachmentEmpty = document.getElementById('attachment-empty');
+
+        const existingAttachments = {{ attachments_payload|tojson|safe }};
+
+        const createHiddenInput = (name, value) => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = name;
+            input.value = value;
+            return input;
+        };
+
+        const removeEmptyState = () => {
+            if (attachmentEmpty) {
+                attachmentEmpty.remove();
+                attachmentEmpty = null;
+            }
+        };
+
+        const showEmptyState = () => {
+            if (!attachmentEmpty) {
+                attachmentEmpty = document.createElement('li');
+                attachmentEmpty.id = 'attachment-empty';
+                attachmentEmpty.className = 'list-group-item text-muted small';
+                attachmentEmpty.textContent = 'ยังไม่มีไฟล์แนบ';
+                attachmentList.appendChild(attachmentEmpty);
+            }
+        };
+
+        const formatFileSize = (bytes) => {
+            if (!bytes || Number.isNaN(bytes)) return '';
+            const units = ['B', 'KB', 'MB', 'GB'];
+            let size = bytes;
+            let unitIndex = 0;
+            while (size >= 1024 && unitIndex < units.length - 1) {
+                size /= 1024;
+                unitIndex += 1;
+            }
+            const precision = unitIndex === 0 ? 0 : 1;
+            return `${size.toFixed(precision)} ${units[unitIndex]}`;
+        };
+
+        const detectIcon = (contentType, fileName) => {
+            const lowerName = fileName.toLowerCase();
+            if (contentType && contentType.startsWith('image/')) return 'bi-file-image';
+            if (lowerName.endsWith('.pdf') || contentType === 'application/pdf') return 'bi-file-earmark-pdf';
+            if (lowerName.endsWith('.xls') || lowerName.endsWith('.xlsx')) return 'bi-file-earmark-excel';
+            if (lowerName.endsWith('.doc') || lowerName.endsWith('.docx')) return 'bi-file-earmark-word';
+            return 'bi-file-earmark-text';
+        };
+
+        const addAttachmentItem = ({ id = null, file_name, file_url, content_type, file_size }, { isNew = false } = {}) => {
+            removeEmptyState();
+            const li = document.createElement('li');
+            li.className = 'list-group-item d-flex justify-content-between align-items-center attachment-item';
+
+            const meta = document.createElement('div');
+            meta.className = 'attachment-meta';
+            const icon = document.createElement('i');
+            icon.className = `bi ${detectIcon(content_type, file_name)} me-2`;
+            meta.appendChild(icon);
+
+            const link = document.createElement('a');
+            link.href = file_url;
+            link.target = '_blank';
+            link.rel = 'noopener';
+            link.textContent = file_name;
+            meta.appendChild(link);
+
+            if (file_size) {
+                const sizeSpan = document.createElement('span');
+                sizeSpan.className = 'text-muted small ms-2';
+                sizeSpan.textContent = formatFileSize(file_size);
+                meta.appendChild(sizeSpan);
+            }
+            li.appendChild(meta);
+
+            const actionWrap = document.createElement('div');
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'btn btn-link text-danger btn-sm';
+            removeBtn.innerHTML = '<i class="bi bi-trash"></i>';
+            actionWrap.appendChild(removeBtn);
+            li.appendChild(actionWrap);
+
+            if (isNew) {
+                li.dataset.status = 'new';
+                const hidden = document.createElement('div');
+                hidden.className = 'attachment-hidden-inputs';
+                hidden.appendChild(createHiddenInput('new_attachment_urls[]', file_url));
+                hidden.appendChild(createHiddenInput('new_attachment_names[]', file_name));
+                hidden.appendChild(createHiddenInput('new_attachment_types[]', content_type || ''));
+                hidden.appendChild(createHiddenInput('new_attachment_sizes[]', file_size || ''));
+                li.appendChild(hidden);
+
+                removeBtn.addEventListener('click', () => {
+                    li.remove();
+                    if (!attachmentList.querySelector('.attachment-item')) {
+                        showEmptyState();
+                    }
+                });
+            } else if (id !== null) {
+                li.dataset.attachmentId = String(id);
+                removeBtn.addEventListener('click', () => {
+                    if (li.dataset.removed === 'true') return;
+                    li.appendChild(createHiddenInput('remove_attachment_ids[]', id));
+                    li.dataset.removed = 'true';
+                    li.classList.add('opacity-50');
+                    removeBtn.classList.add('disabled');
+                    removeBtn.setAttribute('disabled', 'disabled');
+
+                    const badge = document.createElement('span');
+                    badge.className = 'badge bg-danger ms-2';
+                    badge.textContent = 'จะถูกลบ';
+                    meta.appendChild(badge);
+                });
+            }
+
+            attachmentList.appendChild(li);
+        };
+
+        const uploadAttachment = async (file) => {
+            const formData = new FormData();
+            formData.append('file', file);
+            try {
+                attachmentUploadBtn.disabled = true;
+                attachmentUploadBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>กำลังอัปโหลด';
+                const response = await fetch('{{ url_for("changelog_bp.upload_attachment") }}', {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrfToken },
+                    body: formData
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || 'ไม่สามารถอัปโหลดไฟล์แนบได้ (สูงสุด 10MB)');
+                }
+                addAttachmentItem(
+                    {
+                        file_name: data.file_name || file.name,
+                        file_url: data.url,
+                        content_type: data.content_type || file.type,
+                        file_size: data.size || file.size,
+                    },
+                    { isNew: true }
+                );
+            } catch (error) {
+                console.error(error);
+                alert(error.message || 'เกิดข้อผิดพลาดในการอัปโหลดไฟล์แนบ');
+            } finally {
+                attachmentUploadBtn.disabled = false;
+                attachmentUploadBtn.innerHTML = '<i class="bi bi-paperclip"></i> อัปโหลดไฟล์';
+            }
+        };
+
+        attachmentUploadBtn.addEventListener('click', () => attachmentInput.click());
+        attachmentInput.addEventListener('change', () => {
+            if (attachmentInput.files) {
+                Array.from(attachmentInput.files).forEach(uploadAttachment);
+                attachmentInput.value = '';
+            }
+        });
+
+        if (Array.isArray(existingAttachments) && existingAttachments.length) {
+            existingAttachments.forEach((att) => addAttachmentItem(att, { isNew: false }));
+        } else {
+            showEmptyState();
         }
     });
 </script>

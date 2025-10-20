@@ -1,6 +1,7 @@
 # app/blueprints/changelog/routes.py - เส้นทางจัดการบันทึกการเปลี่ยนแปลงของระบบ
 from __future__ import annotations
 
+import os
 from collections import OrderedDict
 from datetime import datetime, timedelta
 from typing import Dict, List
@@ -23,9 +24,14 @@ from markupsafe import Markup
 from . import bp
 from .forms import ChangeLogForm
 from app.extensions import db
-from app.models import ChangeLog
+from app.models import ChangeLog, ChangeLogFile
 from app.services.authz import admin_required
-from app.services.s3 import upload_fileobj
+from app.services.s3 import (
+    DEFAULT_ALLOWED_ATTACHMENT_MIME,
+    DEFAULT_ALLOWED_IMAGE_MIME,
+    MAX_ATTACHMENT_SIZE_BYTES,
+    upload_fileobj,
+)
 
 BANGKOK_TZ = pytz.timezone("Asia/Bangkok")
 ALLOWED_TAGS = [
@@ -102,6 +108,41 @@ def _sanitize_body(raw_body: str) -> Markup:
     return Markup(cleaned)
 
 
+def _serialize_attachment(attachment: ChangeLogFile) -> Dict[str, object]:
+    return {
+        "id": attachment.id,
+        "file_name": attachment.file_name,
+        "file_url": attachment.file_url,
+        "content_type": attachment.content_type,
+        "file_size": attachment.file_size,
+    }
+
+
+def _parse_new_attachments(form) -> List[ChangeLogFile]:
+    urls = form.getlist("new_attachment_urls[]")
+    names = form.getlist("new_attachment_names[]")
+    types = form.getlist("new_attachment_types[]")
+    sizes = form.getlist("new_attachment_sizes[]")
+
+    attachments: List[ChangeLogFile] = []
+    for url, name, content_type, size in zip(urls, names, types, sizes):
+        if not url or not name:
+            continue
+        try:
+            size_int = int(size) if size else None
+        except ValueError:
+            size_int = None
+        attachments.append(
+            ChangeLogFile(
+                file_name=name,
+                file_url=url,
+                content_type=content_type or None,
+                file_size=size_int,
+            )
+        )
+    return attachments
+
+
 def _decorate_entries(entries: List[ChangeLog]) -> List[Dict]:
     grouped: "OrderedDict[datetime.date, Dict]" = OrderedDict()
     for entry in entries:
@@ -128,6 +169,16 @@ def _decorate_entries(entries: List[ChangeLog]) -> List[Dict]:
                 "updated_at": entry.updated_at,
                 "is_new": is_new,
                 "author_id": entry.created_by_admin_id,
+                "attachments": [
+                    {
+                        "id": attach.id,
+                        "file_name": attach.file_name,
+                        "file_url": attach.file_url,
+                        "content_type": attach.content_type,
+                        "is_previewable": (attach.content_type or "").startswith("image/"),
+                    }
+                    for attach in entry.attachments
+                ],
             }
         )
 
@@ -159,7 +210,7 @@ def index():
 @bp.get("/changelog/<int:log_id>")
 def detail(log_id: int):
     changelog = ChangeLog.query.get_or_404(log_id)
-    decorated = _decorate_entries([changelog])[0]["items"][0]
+    decorated = _decorate_entries([changelog])[0]["entries"][0]
     return render_template("changelog/detail.html", changelog=decorated)
 
 
@@ -167,7 +218,12 @@ def detail(log_id: int):
 @admin_required
 def new():
     form = ChangeLogForm()
-    return render_template("changelog/form.html", form=form, form_action=url_for("changelog_bp.create"))
+    return render_template(
+        "changelog/form.html",
+        form=form,
+        form_action=url_for("changelog_bp.create"),
+        attachments_payload=[],
+    )
 
 
 @bp.post("/admin/changelog")
@@ -176,7 +232,17 @@ def create():
     form = ChangeLogForm()
     if not form.validate_on_submit():
         flash("กรอกข้อมูลไม่ครบถ้วน", "warning")
-        return render_template("changelog/form.html", form=form, form_action=url_for("changelog_bp.create")), 400
+        temp_attachments = _parse_new_attachments(request.form)
+        attachments_payload = [_serialize_attachment(att) for att in temp_attachments]
+        return (
+            render_template(
+                "changelog/form.html",
+                form=form,
+                form_action=url_for("changelog_bp.create"),
+                attachments_payload=attachments_payload,
+            ),
+            400,
+        )
 
     changelog = ChangeLog(
         title=form.title.data.strip(),
@@ -185,6 +251,13 @@ def create():
         created_by_admin_id=current_user.id,
     )
     db.session.add(changelog)
+    db.session.flush()
+
+    new_attachments = _parse_new_attachments(request.form)
+    for attachment in new_attachments:
+        attachment.changelog = changelog
+        db.session.add(attachment)
+
     db.session.commit()
     flash("บันทึกการเปลี่ยนแปลงถูกสร้างแล้ว", "success")
     return redirect(url_for("changelog_bp.index"))
@@ -195,12 +268,14 @@ def create():
 def edit(log_id: int):
     changelog = ChangeLog.query.get_or_404(log_id)
     form = ChangeLogForm(obj=changelog)
+    attachment_payload = [_serialize_attachment(att) for att in changelog.attachments]
     return render_template(
         "changelog/form.html",
         form=form,
         form_action=url_for("changelog_bp.update", log_id=log_id),
         editing=True,
         changelog=changelog,
+        attachments_payload=attachment_payload,
     )
 
 
@@ -209,8 +284,13 @@ def edit(log_id: int):
 def update(log_id: int):
     changelog = ChangeLog.query.get_or_404(log_id)
     form = ChangeLogForm()
+    attachment_payload = [_serialize_attachment(att) for att in changelog.attachments]
     if not form.validate_on_submit():
         flash("กรอกข้อมูลไม่ครบถ้วน", "warning")
+        temp_new_attachments = _parse_new_attachments(request.form)
+        attachment_payload_render = attachment_payload + [
+            _serialize_attachment(att) for att in temp_new_attachments
+        ]
         return (
             render_template(
                 "changelog/form.html",
@@ -218,6 +298,7 @@ def update(log_id: int):
                 form_action=url_for("changelog_bp.update", log_id=log_id),
                 editing=True,
                 changelog=changelog,
+                attachments_payload=attachment_payload_render,
             ),
             400,
         )
@@ -225,6 +306,18 @@ def update(log_id: int):
     changelog.title = form.title.data.strip()
     changelog.body = form.body.data.strip()
     changelog.image_url = form.image_url.data.strip() if form.image_url.data else None
+
+    remove_ids = {int(aid) for aid in request.form.getlist("remove_attachment_ids[]") if aid}
+    if remove_ids:
+        for attachment in list(changelog.attachments):
+            if attachment.id in remove_ids:
+                db.session.delete(attachment)
+
+    new_attachments = _parse_new_attachments(request.form)
+    for attachment in new_attachments:
+        attachment.changelog = changelog
+        db.session.add(attachment)
+
     db.session.commit()
     flash("อัปเดตบันทึกการเปลี่ยนแปลงแล้ว", "success")
     return redirect(url_for("changelog_bp.index"))
@@ -254,3 +347,35 @@ def upload():
         return jsonify({"error": str(exc)}), 400
 
     return jsonify({"url": url}), 201
+
+
+@bp.post("/admin/changelog/upload-attachment")
+@admin_required
+def upload_attachment():
+    if "file" not in request.files:
+        abort(400, description="Missing file")
+    file = request.files["file"]
+
+    try:
+        file.stream.seek(0, os.SEEK_END)
+        size_hint = file.stream.tell()
+        file.stream.seek(0)
+        allowed = set(DEFAULT_ALLOWED_ATTACHMENT_MIME) | DEFAULT_ALLOWED_IMAGE_MIME
+        url = upload_fileobj(
+            file,
+            key_prefix="changelog/attachments/",
+            allowed_mimetypes=allowed,
+            max_size_bytes=MAX_ATTACHMENT_SIZE_BYTES,
+        )
+    except Exception as exc:  # noqa: BLE001
+        current_app.logger.exception("Failed to upload changelog attachment")
+        return jsonify({"error": str(exc)}), 400
+
+    return jsonify(
+        {
+            "url": url,
+            "file_name": file.filename,
+            "content_type": file.mimetype,
+            "size": size_hint or file.content_length,
+        }
+    ), 201

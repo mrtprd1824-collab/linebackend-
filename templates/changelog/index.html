@@ -57,7 +57,37 @@
                             <div class="accordion-body">
                                 <div class="lead mb-3">{{ item.body_html }}</div>
                                 {% if item.image_url %}
-                                <img src="{{ item.image_url }}" alt="changelog image" class="img-fluid rounded mb-3 shadow-sm">
+                                <div class="mb-3">
+                                    <button type="button"
+                                        class="btn btn-link p-0 attachment-preview-link"
+                                        data-url="{{ item.image_url }}"
+                                        data-name="{{ item.title }}">
+                                        <img src="{{ item.image_url }}" alt="changelog image" class="img-fluid rounded shadow-sm">
+                                    </button>
+                                </div>
+                                {% endif %}
+                                {% if item.attachments %}
+                                <div class="mt-3">
+                                    <h3 class="h6 text-muted">ไฟล์แนบ</h3>
+                                    <ul class="list-unstyled mb-0">
+                                        {% for attachment in item.attachments %}
+                                        <li class="mb-1">
+                                            {% if attachment.is_previewable %}
+                                            <button type="button"
+                                                class="btn btn-link p-0 attachment-preview-link"
+                                                data-url="{{ attachment.file_url }}"
+                                                data-name="{{ attachment.file_name }}">
+                                                <i class="bi bi-image me-1"></i>{{ attachment.file_name }}
+                                            </button>
+                                            {% else %}
+                                            <a href="{{ attachment.file_url }}" target="_blank" rel="noopener">
+                                                <i class="bi bi-paperclip me-1"></i>{{ attachment.file_name }}
+                                            </a>
+                                            {% endif %}
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
                                 {% endif %}
                                 <div class="d-flex justify-content-between align-items-center">
                                     <small class="text-muted">
@@ -119,4 +149,47 @@
     </nav>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <div class="modal fade" id="attachmentPreviewModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="attachment-preview-title"></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <img id="attachment-preview-image" class="img-fluid rounded shadow-sm" alt="Preview">
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const previewModal = document.getElementById('attachmentPreviewModal');
+            const previewImage = document.getElementById('attachment-preview-image');
+            const previewTitle = document.getElementById('attachment-preview-title');
+
+            if (!previewModal) return;
+
+            const bootstrapModal = new bootstrap.Modal(previewModal);
+
+            document.querySelectorAll('.attachment-preview-link').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const url = btn.getAttribute('data-url');
+                    const name = btn.getAttribute('data-name') || 'Preview';
+                    previewImage.src = url;
+                    previewTitle.textContent = name;
+                    bootstrapModal.show();
+                });
+            });
+
+            previewModal.addEventListener('hidden.bs.modal', () => {
+                previewImage.src = '';
+                previewTitle.textContent = '';
+            });
+        });
+    </script>
 {% endblock %}

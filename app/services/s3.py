@@ -12,8 +12,16 @@ import requests
 from botocore.client import Config
 from werkzeug.datastructures import FileStorage
 
-ALLOWED_IMAGE_MIME = {"image/jpeg", "image/png", "image/webp"}
+DEFAULT_ALLOWED_IMAGE_MIME = {"image/jpeg", "image/png", "image/webp"}
+DEFAULT_ALLOWED_ATTACHMENT_MIME = {
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+}
 MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024  # 5 MB
+MAX_ATTACHMENT_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB
 
 
 @dataclass
@@ -65,9 +73,11 @@ def _get_client(config: S3Config):
     )
 
 
-def _ensure_image(content_type: str) -> None:
-    if content_type not in ALLOWED_IMAGE_MIME:
-        raise ValueError(f"Unsupported image content type: {content_type}")
+def _ensure_allowed(content_type: str, allowed: Optional[set[str]]) -> None:
+    if allowed is None:
+        return
+    if content_type not in allowed:
+        raise ValueError(f"Unsupported content type: {content_type}")
 
 
 def _build_key(original_filename: str, key_prefix: str) -> str:
@@ -90,7 +100,12 @@ def _read_stream_with_limit(stream: BinaryIO, limit: int) -> bytes:
     return data
 
 
-def upload_fileobj(file: FileStorage, key_prefix: str = "changelog/") -> str:
+def upload_fileobj(
+    file: FileStorage,
+    key_prefix: str = "changelog/",
+    allowed_mimetypes: Optional[set[str]] = None,
+    max_size_bytes: int = MAX_FILE_SIZE_BYTES,
+) -> str:
     """อัปโหลดไฟล์จากฟอร์มไปยัง S3 แล้วคืน URL แบบสาธารณะ"""
     if file.filename is None or file.filename == "":
         raise ValueError("Missing filename")
@@ -101,10 +116,10 @@ def upload_fileobj(file: FileStorage, key_prefix: str = "changelog/") -> str:
     else:
         mimetype = file.mimetype
 
-    _ensure_image(mimetype)
+    _ensure_allowed(mimetype, allowed_mimetypes or DEFAULT_ALLOWED_IMAGE_MIME)
 
     file.stream.seek(0)
-    payload = _read_stream_with_limit(file.stream, MAX_FILE_SIZE_BYTES)
+    payload = _read_stream_with_limit(file.stream, max_size_bytes)
 
     config = _load_config()
     client = _get_client(config)
@@ -124,7 +139,12 @@ def upload_fileobj(file: FileStorage, key_prefix: str = "changelog/") -> str:
     return _public_url(config, key)
 
 
-def mirror_from_url(source_url: str, key_prefix: str = "changelog/") -> str:
+def mirror_from_url(
+    source_url: str,
+    key_prefix: str = "changelog/",
+    allowed_mimetypes: Optional[set[str]] = None,
+    max_size_bytes: int = MAX_FILE_SIZE_BYTES,
+) -> str:
     """ดาวน์โหลดภาพจาก URL แล้ว mirror ขึ้น S3"""
     response = requests.get(source_url, timeout=10)
     response.raise_for_status()
@@ -134,8 +154,8 @@ def mirror_from_url(source_url: str, key_prefix: str = "changelog/") -> str:
         guessed = mimetypes.guess_type(source_url)[0]
         content_type = guessed or "application/octet-stream"
 
-    _ensure_image(content_type)
-    if len(response.content) > MAX_FILE_SIZE_BYTES:
+    _ensure_allowed(content_type, allowed_mimetypes or DEFAULT_ALLOWED_IMAGE_MIME)
+    if len(response.content) > max_size_bytes:
         raise ValueError("Remote file is too large")
 
     filename = os.path.basename(source_url.split("?")[0]) or f"image.{mimetypes.guess_extension(content_type) or 'jpg'}"

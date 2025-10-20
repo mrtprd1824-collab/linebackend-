@@ -21,14 +21,16 @@
     color: #0f172a;
 }
 
-[data-bs-theme="dark"] #search-page .table thead.table-light {
-    background-color: #212529;
-    color: #e5e7eb;
-}
-
 #search-page .table thead.table-light {
     background-color: #e2e8f0;
-    color: #0f172a;
+    --bs-table-color: #0f172a;
+    color: var(--bs-table-color);
+}
+
+[data-bs-theme="dark"] #search-page .table thead.table-light {
+    background-color: #212529;
+    --bs-table-color: #e5e7eb;
+    color: var(--bs-table-color);
 }
 
 #search-page h3 {
@@ -54,6 +56,12 @@
     color: #e5e7eb;
 }
 
+[data-bs-theme="dark"] #search-page .table thead {
+    background-color: #1f2937;
+    --bs-table-color: #e5e7eb;
+    color: var(--bs-table-color);
+}
+
 [data-bs-theme="dark"] #search-page .search-tags-box {
     background-color: #111827;
     border-color: #1f2937;
@@ -66,16 +74,6 @@
 
 [data-bs-theme="dark"] #search-page .search-tags-box .form-check-label {
     color: #e5e7eb;
-}
-
-[data-bs-theme="dark"] #search-page .table thead {
-    background-color: #1f2937;
-    color: #e5e7eb;
-}
-
-[data-bs-theme="dark"] #search-page .table thead.table-light {
-    background-color: #212529;
-    --bs-table-color: #e5e7eb;
 }
 
 [data-bs-theme="dark"] #search-page h3 {

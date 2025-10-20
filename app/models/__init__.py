@@ -25,7 +25,7 @@ tags_users = db.Table('tags_users',
 
 # --- Models ---
 
-from .changelog import ChangeLog  # noqa: E402  # ให้ blueprint อื่นๆ import ได้ง่าย
+from .changelog import ChangeLog, ChangeLogFile  # noqa: E402  # ให้ blueprint อื่นๆ import ได้ง่าย
 
 
 class User(UserMixin, db.Model):
