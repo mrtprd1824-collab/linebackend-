@@ -1,4 +1,4 @@
-# static/css/changelog.css - ปรับสไตล์หน้า changelog ให้เข้ากับธีม
+
 
 #changelog-page .datetext-changelog {
     font-weight: 600;
@@ -30,8 +30,8 @@
 }
 
 #changelog-page .badge.bg-success {
-    background-color: #10b981 !important;
-    color: #064e3b;
+    background-color: #ff0000 !important;
+    color: #ffffff;
 }
 
 #changelog-page img.img-fluid {
@@ -79,8 +79,8 @@
 }
 
 [data-bs-theme="dark"] #changelog-page .badge.bg-success {
-    background-color: #22c55e !important;
-    color: #052e16;
+    background-color: #ff0000 !important;
+    color: #ffffff;
 }
 
 [data-bs-theme="dark"] #changelog-page img.img-fluid {

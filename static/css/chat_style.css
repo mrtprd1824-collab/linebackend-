@@ -451,7 +451,7 @@ body {
 
 /* --- 1. Color Palettes --- */
 :root {
-  --main-bg: #d1dff4;
+  --main-bg: #f0f0f0;
   --main-border: #dee2e6;
   --main-text: #212529;
   --muted-text: #6c757d;
@@ -459,7 +459,7 @@ body {
   --component-alt-bg: #f8f9fa;
   --chat-header-bg: #ffffff;
   --customer-bubble-bg: #ffffff;
-  --admin-bubble-bg: #0d6efd;
+  --admin-bubble-bg: #5195f9;
   --admin-bubble-text: white;
   --event-warning-bg: #fff3cd;
   --event-warning-border: #ffe69c;
@@ -487,7 +487,7 @@ body {
   --component-alt-bg: #343a40;
   --chat-header-bg: #343a40;
   --customer-bubble-bg: #343a40;
-  --admin-bubble-bg: #339af0;
+  --admin-bubble-bg: #5195f9;
   --admin-bubble-text: white;
   --event-warning-bg: #664d03;
   --event-warning-border: #997404;
