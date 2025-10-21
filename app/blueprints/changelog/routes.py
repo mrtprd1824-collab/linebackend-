@@ -5,6 +5,7 @@ import os
 from collections import OrderedDict
 from datetime import datetime, timedelta
 from typing import Dict, List
+from flask_login import login_required
 
 import bleach
 import pytz
@@ -186,6 +187,7 @@ def _decorate_entries(entries: List[ChangeLog]) -> List[Dict]:
 
 
 @bp.get("/changelog")
+@login_required
 def index():
     page = request.args.get("page", 1, type=int)
     per_page = request.args.get("per_page", 10, type=int)
@@ -208,6 +210,7 @@ def index():
 
 
 @bp.get("/changelog/<int:log_id>")
+@login_required
 def detail(log_id: int):
     changelog = ChangeLog.query.get_or_404(log_id)
     decorated = _decorate_entries([changelog])[0]["entries"][0]

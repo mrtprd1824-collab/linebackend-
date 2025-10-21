@@ -1,6 +1,18 @@
 {% extends "base.html" %}
 {% set page_type = 'chat' %}
 
+{% block extra_css %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/chat-modern.css') }}">
+    <style>
+        @media (min-width: 992px) {
+            body.page-chat {
+                overflow: hidden;
+            }
+        }
+    </style>
+{% endblock %}
+
 {% block content %}
 <div class="chat-container">
 
@@ -14,41 +26,36 @@
             {% endif %}
         </div>
 
-        <div id="new-message-alert" class="p-2 text-center"
-            style="display: none; background-color: #5697f8; color: white; cursor: pointer;">
+        <div id="new-message-alert" class="new-message-alert">
             New messages arrived. Click to view.
         </div>
 
-        <div class="p-2 border-bottom">
-            <div class="input-group">
+        <div class="chat-search-bar p-3 border-bottom">
+            <div class="input-group input-group-sm chat-search-input">
                 <input type="text" id="user-search-input" class="form-control form-control-sm"
                     placeholder="Search by Nickname, Phone, User ID...">
                 <button class="btn btn-outline-secondary btn-sm" type="button" id="user-search-btn">Search</button>
             </div>
         </div>
 
-        <div class="p-2 border-bottom bg-body"> {# ★★★ 1. เพิ่ม bg-body เพื่อให้พื้นหลังเป็นสีขาว/ดำ ตามธีม ★★★ #}
+        <div class="chat-status-bar p-3 border-bottom">
             <div class="btn-group btn-group-sm w-100" role="group">
 
                 <input type="radio" class="btn-check" name="statusFilterRadio" id="statusAll" value="all"
                     autocomplete="off" {% if status_filter=='all' %}checked{% endif %}>
-                <label class="btn btn-outline-primary flex-fill" for="statusAll">ทั้งหมด</label> {# ★★★ 2. เพิ่ม
-                flex-fill ★★★ #}
+                <label class="btn btn-outline-primary flex-fill" for="statusAll">ทั้งหมด</label>
 
                 <input type="radio" class="btn-check" name="statusFilterRadio" id="statusDeposit" value="deposit"
                     autocomplete="off" {% if status_filter=='deposit' %}checked{% endif %}>
-                <label class="btn btn-outline-success flex-fill" for="statusDeposit">ฝาก</label> {# ★★★ 2. เพิ่ม
-                flex-fill ★★★ #}
+                <label class="btn btn-outline-success flex-fill" for="statusDeposit">ฝาก</label>
 
                 <input type="radio" class="btn-check" name="statusFilterRadio" id="statusWithdraw" value="withdraw"
                     autocomplete="off" {% if status_filter=='withdraw' %}checked{% endif %}>
-                <label class="btn btn-outline-warning flex-fill" for="statusWithdraw">ถอน</label> {# ★★★ 2. เพิ่ม
-                flex-fill ★★★ #}
+                <label class="btn btn-outline-warning flex-fill" for="statusWithdraw">ถอน</label>
 
                 <input type="radio" class="btn-check" name="statusFilterRadio" id="statusIssue" value="issue"
                     autocomplete="off" {% if status_filter=='issue' %}checked{% endif %}>
-                <label class="btn btn-outline-danger flex-fill" for="statusIssue">ติดปัญหา</label> {# ★★★ 2. เพิ่ม
-                flex-fill ★★★ #}
+                <label class="btn btn-outline-danger flex-fill" for="statusIssue">ติดปัญหา</label>
 
             </div>
         </div>
@@ -134,11 +141,23 @@
 
         <div id="chat-area" class="d-none">
             <div class="chat-header" id="chat-header">
-                <div id="user-tags-container" class="mt-2">
+                <div class="chat-header-left">
+                    <h5 class="mb-1 fw-semibold d-flex align-items-center gap-2">
+                        <i class="bi bi-person-circle text-primary"></i>
+                        <span id="chat-user-name">เลือกผู้ใช้</span>
+                    </h5>
+                    <div id="user-tags-container" class="chat-tag-list"></div>
                 </div>
-                <button type="button" class="btn btn-outline-primary btn-sm mt-2" id="manage-tags-btn">
-                    <i class="bi bi-tags-fill"></i> จัดการ Tag
-                </button>
+                <div class="chat-header-right">
+                    <a href="#" id="chatting-on-link" class="chat-oa-link disabled">
+                        <span class="text-muted small">OA:</span>
+                        <span class="fw-semibold" id="chatting-on-name">-</span>
+                        <i class="bi bi-box-arrow-up-right"></i>
+                    </a>
+                    <button type="button" class="btn btn-outline-primary btn-sm" id="manage-tags-btn">
+                        <i class="bi bi-tags-fill"></i> จัดการ Tag
+                    </button>
+                </div>
             </div>
             <div class="chat-messages" id="chat-messages">
             </div>
@@ -180,6 +199,8 @@
         </div>
     </div>
 
+    </div>
+
     <div class="modal fade" id="quickReplyModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
@@ -191,7 +212,6 @@
             </div>
         </div>
     </div>
-
     <div class="modal fade" id="imagePreviewModal" tabindex="-1" aria-labelledby="imagePreviewModalLabel"
         aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">

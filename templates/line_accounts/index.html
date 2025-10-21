@@ -1,85 +1,110 @@
 {% extends "base.html" %}
 
-{% block content %}
-<div class.container mt-4>
-  <div class="card shadow-sm">
-    <div class="page-header">
-      <h4 class="mb-0">
-        <i class="bi bi-robot"></i> Manage LINE Accounts
-      </h4>
-      <div class="d-flex align-items-center gap-2 mt-2 mt-md-0">
+{% block extra_css %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/line-accounts.css') }}">
+{% endblock %}
 
-        {# --- [เพิ่ม] Dropdown Filter by Group --- #}
-        <form id="filter-form" method="get" action="{{ url_for('line_admin.line_admin_index') }}">
-          <select name="group_filter" class="form-select form-select-sm" onchange="this.form.submit();">
-            <option value="">-- Filter by Group --</option>
+{% block content %}
+<div id="line-accounts-page" class="container py-4 py-lg-5">
+  <section class="la-hero p-4 p-lg-5 mb-5 rounded-4">
+    <div class="d-flex flex-column flex-xl-row align-items-xl-center justify-content-xl-between gap-4">
+      <div>
+        <span class="la-label text-uppercase fw-semibold">Line OA</span>
+        <h1 class="display-6 fw-semibold mb-2">
+          จัดการบัญชี Line Official Account
+        </h1>
+        <p class="mb-0 text-muted">
+          เพิ่ม แก้ไข หรือจัดกลุ่ม OA ให้พร้อมใช้งานกับเว็บฮุกของคุณในไม่กี่ขั้นตอน
+        </p>
+      </div>
+      <div class="d-flex flex-column flex-md-row align-items-md-center gap-3 w-100 w-xl-auto">
+        <form id="filter-form" method="get" action="{{ url_for('line_admin.line_admin_index') }}" class="la-filter-form">
+          <select name="group_filter" class="form-select la-select" onchange="this.form.submit();">
+            <option value="">เลือกกรุ๊ปทั้งหมด</option>
             {% for group in groups %}
-            <option value="{{ group.id }}" {% if group.id==selected_group_id %}selected{% endif %}>
+            <option value="{{ group.id }}" {% if group.id == selected_group_id %}selected{% endif %}>
               {{ group.name }}
             </option>
             {% endfor %}
           </select>
         </form>
-
-        {# --- [ปรับปรุง] ปุ่ม Add New --- #}
-        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addAccountModal">
-          <i class="bi bi-plus-circle-fill"></i> Add New OA
+        <button type="button" class="btn btn-primary la-add-btn" data-bs-toggle="modal" data-bs-target="#addAccountModal">
+          <i class="bi bi-plus-circle-fill me-2"></i> เพิ่ม OA ใหม่
         </button>
       </div>
     </div>
+  </section>
 
-    <div class="card-body">
+  <section class="card la-table-card border-0 shadow-sm rounded-4">
+    <div class="card-body p-0">
       <div class="table-responsive">
-        <table class="table table-hover align-middle">
+        <table class="table align-middle mb-0 la-table">
           <thead>
             <tr>
-              <th>Name</th>
-              <th>Groups</th>
-              <th>Webhook URL</th>
-              <th class="text-end">Actions</th>
+              <th scope="col">ชื่อ OA</th>
+              <th scope="col">กลุ่มที่อยู่</th>
+              <th scope="col">Webhook URL</th>
+              <th scope="col" class="text-end">การจัดการ</th>
             </tr>
           </thead>
           <tbody>
             {% for account in accounts %}
             <tr>
-              <td><strong>{{ account.name }}</strong><br><small class="text-muted">ID: {{ account.id }}</small></td>
               <td>
-                {% for group in account.groups %}
-                <span class="badge bg-secondary fw-normal">{{ group.name }}</span>
-                {% else %}
-                <span class="text-muted small">Not assigned</span>
-                {% endfor %}
+                <div class="d-flex flex-column">
+                  <span class="fw-semibold">{{ account.name }}</span>
+                  <small class="text-muted">ID: {{ account.id }}</small>
+                </div>
               </td>
               <td>
-                <div class="input-group input-group-sm">
-                  <input type="text" class="form-control"
-                    value="{{ base_url.rstrip('/') }}{{ url_for('line_webhook.callback', webhook_path=account.webhook_path) }}"
-                    id="webhook-url-{{ account.id }}" readonly>
-                  <button class="btn btn-outline-secondary" type="button"
-                    onclick="copyToClipboard('webhook-url-{{ account.id }}', this)">
+                <div class="d-flex flex-wrap gap-2">
+                  {% for group in account.groups %}
+                  <span class="badge la-chip">{{ group.name }}</span>
+                  {% else %}
+                  <span class="text-muted small">ยังไม่ได้ระบุ</span>
+                  {% endfor %}
+                </div>
+              </td>
+              <td>
+                <div class="input-group input-group-sm la-input-group">
+                  <input type="text"
+                         class="form-control"
+                         value="{{ base_url.rstrip('/') }}{{ url_for('line_webhook.callback', webhook_path=account.webhook_path) }}"
+                         id="webhook-url-{{ account.id }}"
+                         readonly>
+                  <button class="btn btn-outline-secondary la-copy-btn"
+                          type="button"
+                          onclick="copyToClipboard('webhook-url-{{ account.id }}', this)">
                     <i class="bi bi-clipboard"></i>
                   </button>
                 </div>
               </td>
               <td class="text-end">
-                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal"
-                  data-bs-target="#editAccountModal{{ account.id }}">
-                  <i class="bi bi-pencil-fill"></i> Edit
-                </button>
-                <form method="post" action="{{ url_for('line_admin.delete_line_account', id=account.id) }}"
-                  onsubmit="return confirm('Are you sure?');" class="d-inline">
-                  <button type="submit" class="btn btn-sm btn-outline-danger">
-                    <i class="bi bi-trash-fill"></i> Delete
+                <div class="btn-group la-action-group">
+                  <button type="button"
+                          class="btn btn-outline-secondary btn-sm"
+                          data-bs-toggle="modal"
+                          data-bs-target="#editAccountModal{{ account.id }}">
+                    <i class="bi bi-pencil-fill me-1"></i> แก้ไข
                   </button>
-                </form>
+                  <form method="post"
+                        action="{{ url_for('line_admin.delete_line_account', id=account.id) }}"
+                        onsubmit="return confirm('ต้องการลบ OA นี้หรือไม่?');"
+                        class="d-inline">
+                    <button type="submit" class="btn btn-outline-danger btn-sm">
+                      <i class="bi bi-trash-fill me-1"></i> ลบ
+                    </button>
+                  </form>
+                </div>
               </td>
             </tr>
             {% else %}
             <tr>
-              <td colspan="4" class="text-center text-muted p-4">
-                No LINE Accounts found.
+              <td colspan="4" class="text-center text-muted py-5">
+                ไม่พบบัญชี OA
                 {% if selected_group_id %}
-                <a href="{{ url_for('line_admin.line_admin_index') }}" class="d-block mt-2">Clear Filter</a>
+                <a href="{{ url_for('line_admin.line_admin_index') }}" class="d-block mt-2">ล้างตัวกรอง</a>
                 {% endif %}
               </td>
             </tr>
@@ -88,7 +113,7 @@
         </table>
       </div>
     </div>
-  </div>
+  </section>
 </div>
 
 {# --- MODALS --- #}

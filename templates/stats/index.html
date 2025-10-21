@@ -9,80 +9,105 @@
 {% endblock %}
 
 {% block content %}
-<div class="container py-4" id="stats-page">
-    <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between mb-4">
-        <h1 class="h3 mb-0">สถิติ</h1>
-        <span class="text-muted small" id="stats-range-display"></span>
-    </div>
+<div class="container py-4 py-lg-5" id="stats-page">
+    <section class="stats-hero p-4 p-lg-5 mb-5">
+        <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-lg-between gap-4">
+            <div>
+                <span class="stats-label text-uppercase fw-semibold">Analytics</span>
+                <h1 class="display-6 fw-semibold mb-2">สรุปสถิติ</h1>
+                <p class="mb-0 text-muted">ดูข้อมูลภาพรวมการสนทนา แยกตามช่วงเวลา OA และทีมงานของคุณ</p>
+            </div>
+            <div class="stats-range badge text-bg-light text-muted px-3 py-2 shadow-sm">
+                <i class="bi bi-calendar-week me-2 text-primary"></i>
+                <span id="stats-range-display"></span>
+            </div>
+        </div>
+    </section>
 
-    <form class="row g-3 align-items-end mb-4" id="stats-filter-form">
-        <div class="col-12 col-md-3">
-            <label for="filter-start" class="form-label">เริ่ม</label>
-            <input type="datetime-local" class="form-control" id="filter-start" name="start">
+    <section class="stats-filter card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body">
+            <form class="row g-3 align-items-end" id="stats-filter-form">
+                <div class="col-12 col-md-3">
+                    <label for="filter-start" class="form-label">เริ่ม</label>
+                    <input type="datetime-local" class="form-control stats-control" id="filter-start" name="start">
+                </div>
+                <div class="col-12 col-md-3">
+                    <label for="filter-end" class="form-label">สิ้นสุด</label>
+                    <input type="datetime-local" class="form-control stats-control" id="filter-end" name="end">
+                </div>
+                <div class="col-12 col-md-3 col-lg-2">
+                    <label for="filter-oa" class="form-label">Line OA</label>
+                    <select class="form-select stats-control" id="filter-oa" name="oa_id">
+                        <option value="">ทั้งหมด</option>
+                        {% for oa in line_accounts %}
+                        <option value="{{ oa.id }}">{{ oa.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-12 col-md-3 col-lg-2">
+                    <button type="submit" class="btn btn-primary w-100 stats-refresh" id="stats-refresh-btn">
+                        <i class="bi bi-arrow-repeat me-1"></i> รีเฟรช
+                    </button>
+                </div>
+                <div class="col-12 col-lg-2">
+                    <button type="button" class="btn btn-outline-secondary w-100 stats-clear" id="stats-clear-btn">
+                        ล้างตัวกรอง
+                    </button>
+                </div>
+            </form>
         </div>
-        <div class="col-12 col-md-3">
-            <label for="filter-end" class="form-label">สิ้นสุด</label>
-            <input type="datetime-local" class="form-control" id="filter-end" name="end">
-        </div>
-        <div class="col-12 col-md-3 col-lg-2">
-            <label for="filter-oa" class="form-label">Line OA</label>
-            <select class="form-select" id="filter-oa" name="oa_id">
-                <option value="">ทั้งหมด</option>
-                {% for oa in line_accounts %}
-                <option value="{{ oa.id }}">{{ oa.name }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="col-12 col-md-3 col-lg-2">
-            <button type="submit" class="btn btn-primary w-100" id="stats-refresh-btn">
-                <i class="bi bi-arrow-repeat me-1"></i> รีเฟรช
-            </button>
-        </div>
-        <div class="col-12 col-lg-2">
-            <button type="button" class="btn btn-outline-secondary w-100" id="stats-clear-btn">
-                ล้างตัวกรอง
-            </button>
-        </div>
-    </form>
+    </section>
 
     <div class="alert alert-danger d-none" role="alert" id="stats-error-alert"></div>
 
-    <div class="row g-3 mb-4" id="stats-kpi-cards">
+    <section class="row g-3 mb-5" id="stats-kpi-cards">
         <div class="col-12 col-md-4">
-            <div class="card kpi-card h-100">
+            <div class="card stats-kpi-card h-100 border-0 shadow-sm rounded-4">
                 <div class="card-body">
+                    <div class="stats-kpi-icon bg-primary-subtle text-primary">
+                        <i class="bi bi-person-plus-fill"></i>
+                    </div>
                     <h2 class="card-title h6 text-muted">ลูกค้าเข้าวันนี้</h2>
-                    <p class="display-6 mb-0" id="kpi-customers-today">-</p>
+                    <p class="stats-kpi-value mb-0" id="kpi-customers-today">-</p>
                 </div>
             </div>
         </div>
         <div class="col-12 col-md-4">
-            <div class="card kpi-card h-100">
+            <div class="card stats-kpi-card h-100 border-0 shadow-sm rounded-4">
                 <div class="card-body">
+                    <div class="stats-kpi-icon bg-success-subtle text-success">
+                        <i class="bi bi-chat-left-dots-fill"></i>
+                    </div>
                     <h2 class="card-title h6 text-muted">ลูกค้าแอคทีฟ</h2>
-                    <p class="display-6 mb-0" id="kpi-active-customers">-</p>
+                    <p class="stats-kpi-value mb-0" id="kpi-active-customers">-</p>
                 </div>
             </div>
         </div>
         <div class="col-12 col-md-4">
-            <div class="card kpi-card h-100">
+            <div class="card stats-kpi-card h-100 border-0 shadow-sm rounded-4">
                 <div class="card-body">
+                    <div class="stats-kpi-icon bg-danger-subtle text-danger">
+                        <i class="bi bi-person-dash-fill"></i>
+                    </div>
                     <h2 class="card-title h6 text-muted">ลูกค้าบล็อก</h2>
-                    <p class="display-6 mb-0" id="kpi-blocked-customers">-</p>
+                    <p class="stats-kpi-value mb-0" id="kpi-blocked-customers">-</p>
                 </div>
             </div>
         </div>
-    </div>
+    </section>
 
-    <div class="row g-4">
+    <section class="row g-4">
         <div class="col-12 col-lg-6">
-            <div class="card h-100">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h2 class="h6 mb-0">อันดับตาม OA</h2>
-                    <span class="text-muted small" id="stats-oa-count"></span>
+            <div class="card stats-table-card h-100 border-0 shadow-sm rounded-4">
+                <div class="card-header border-0 bg-transparent d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="h6 fw-semibold mb-1">อันดับตาม OA</h2>
+                        <p class="text-muted small mb-0">จัดอันดับตามจำนวนลูกค้าที่ทักเข้ามา</p>
+                    </div>
+                    <span class="badge rounded-pill bg-light text-muted" id="stats-oa-count"></span>
                 </div>
                 <div class="table-responsive">
-                    <table class="table table-hover table-striped mb-0">
+                    <table class="table table-hover mb-0">
                         <thead>
                             <tr>
                                 <th scope="col">OA</th>
@@ -100,13 +125,16 @@
             </div>
         </div>
         <div class="col-12 col-lg-6">
-            <div class="card h-100">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h2 class="h6 mb-0">อันดับตามแอดมิน</h2>
-                    <span class="text-muted small" id="stats-admin-count"></span>
+            <div class="card stats-table-card h-100 border-0 shadow-sm rounded-4">
+                <div class="card-header border-0 bg-transparent d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="h6 fw-semibold mb-1">อันดับตามแอดมิน</h2>
+                        <p class="text-muted small mb-0">ดูปริมาณการตอบกลับของทีมงาน</p>
+                    </div>
+                    <span class="badge rounded-pill bg-light text-muted" id="stats-admin-count"></span>
                 </div>
                 <div class="table-responsive">
-                    <table class="table table-hover table-striped mb-0">
+                    <table class="table table-hover mb-0">
                         <thead>
                             <tr>
                                 <th scope="col">แอดมิน</th>
@@ -123,7 +151,7 @@
                 </div>
             </div>
         </div>
-    </div>
+    </section>
 </div>
 {% endblock %}
 

@@ -1,0 +1,111 @@
+.profile-hero {
+    background: radial-gradient(circle at top left, #f3f4ff 0%, #f9faff 40%, #ffffff 80%);
+    border-radius: 28px;
+    border: 1px solid rgba(99, 110, 139, 0.12);
+    box-shadow: 0 24px 48px rgba(62, 84, 165, 0.16);
+}
+
+[data-bs-theme="dark"] .profile-hero {
+    background: radial-gradient(circle at top left, #1f2937 0%, #111827 55%, #0b1120 90%);
+    border-color: rgba(148, 163, 184, 0.2);
+    box-shadow: 0 26px 60px rgba(2, 6, 23, 0.65);
+}
+
+.profile-avatar .avatar-circle {
+    width: 82px;
+    height: 82px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #5f58ff, #7a6cff);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+.profile-avatar {
+    border-radius: 50%;
+}
+
+.profile-label {
+    letter-spacing: 0.32em;
+    font-size: 0.7rem;
+    color: #5f58ff;
+    text-transform: uppercase;
+}
+
+.profile-card {
+    background: #ffffff;
+    border-radius: 24px;
+    border: 1px solid rgba(99, 110, 139, 0.14);
+    box-shadow: 0 24px 48px rgba(15, 23, 42, 0.12);
+}
+
+[data-bs-theme="dark"] .profile-card {
+    background: rgba(17, 24, 39, 0.92);
+    border-color: rgba(148, 163, 184, 0.22);
+    box-shadow: 0 28px 60px rgba(2, 6, 23, 0.65);
+}
+
+.profile-email-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.75rem 1rem;
+    background: rgba(95, 88, 255, 0.12);
+    border-radius: 18px;
+    color: #1f2937;
+}
+
+[data-bs-theme="dark"] .profile-email-group {
+    background: rgba(95, 88, 255, 0.2);
+    color: #e2e8f0;
+}
+
+.profile-input-group .input-group-text {
+    border-radius: 16px 0 0 16px;
+    border-color: rgba(148, 163, 184, 0.3);
+}
+
+.profile-input-group .form-control {
+    border-radius: 0 16px 16px 0;
+    border-color: rgba(148, 163, 184, 0.3);
+    padding: 0.75rem 1rem;
+}
+
+.profile-input-group .form-control:focus {
+    border-color: #5f58ff;
+    box-shadow: 0 0 0 0.25rem rgba(95, 88, 255, 0.18);
+}
+
+.profile-form .form-label {
+    font-weight: 600;
+    color: #1e293b;
+}
+
+[data-bs-theme="dark"] .profile-form .form-label {
+    color: #e2e8f0;
+}
+
+.profile-submit {
+    border-radius: 18px;
+    padding: 0.75rem 1.6rem;
+    box-shadow: 0 18px 40px rgba(95, 88, 255, 0.3);
+}
+
+.profile-submit:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 22px 48px rgba(95, 88, 255, 0.35);
+}
+
+@media (max-width: 991.98px) {
+    .profile-hero {
+        text-align: center;
+    }
+
+    .profile-avatar {
+        margin-inline: auto;
+    }
+}

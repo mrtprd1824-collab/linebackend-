@@ -1,86 +1,95 @@
 {% extends "base.html" %}
 
+{% block extra_css %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/quick-replies.css') }}">
+{% endblock %}
+
 {% block content %}
-<div class="card shadow-sm">
-    <div class="card-header d-flex flex-wrap justify-content-between align-items-center">
-        <h4 class="mb-0">
-            <i class="bi bi-lightning-charge-fill"></i> Quick Replies
-        </h4>
-        <div class="d-flex align-items-center gap-2 mt-2 mt-md-0">
-            
-            {# --- [เพิ่ม] Dropdown Filter --- #}
-            <form id="filter-form" method="get" action="{{ url_for('quick_replies.index') }}">
-                <select name="oa_filter" class="form-select form-select-sm" onchange="document.getElementById('filter-form').submit();">
-                    <option value="">-- Filter by OA --</option>
-                    {% for account in all_accounts %}
-                    <option value="{{ account.id }}" {% if account.id == selected_oa_id %}selected{% endif %}>
-                        {{ account.name }}
-                    </option>
-                    {% endfor %}
-                </select>
-            </form>
-
-            {# --- [ปรับปรุง] ปุ่ม Add New --- #}
-            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addReplyModal">
-                <i class="bi bi-plus-circle-fill"></i> Add New
-            </button>
+<div id="quick-replies-page" class="container py-4 py-lg-5">
+    <section class="qr-hero p-4 p-lg-5 mb-5 rounded-4">
+        <div class="d-flex flex-column flex-xl-row align-items-xl-center justify-content-xl-between gap-4">
+            <div>
+                <span class="qr-label text-uppercase fw-semibold">Quick Replies</span>
+                <h1 class="display-6 fw-semibold mb-2"><i class="bi bi-lightning-charge-fill me-2"></i>จัดการข้อความตอบกลับเร็ว</h1>
+                <p class="mb-0 text-muted">สร้างแม่แบบข้อความเพื่อสนทนากับลูกค้าได้ทันใจ รองรับทั้ง Global และเฉพาะ OA</p>
+            </div>
+            <div class="d-flex flex-column flex-md-row align-items-md-center gap-3 w-100 w-xl-auto">
+                <form id="filter-form" method="get" action="{{ url_for('quick_replies.index') }}" class="qr-filter">
+                    <select name="oa_filter" class="form-select qr-select" onchange="document.getElementById('filter-form').submit();">
+                        <option value="">ทั้งหมด</option>
+                        {% for account in all_accounts %}
+                        <option value="{{ account.id }}" {% if account.id == selected_oa_id %}selected{% endif %}>
+                            {{ account.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </form>
+                <button type="button" class="btn btn-primary qr-add-btn" data-bs-toggle="modal" data-bs-target="#addReplyModal">
+                    <i class="bi bi-plus-circle-fill me-2"></i> เพิ่มข้อความใหม่
+                </button>
+            </div>
         </div>
-    </div>
+    </section>
 
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle">
-                <thead>
-                    <tr>
-                        <th>Shortcut</th>
-                        <th>Message</th>
-                        <th>Belongs to OA</th>
-                        <th class="text-end" style="width: 15%;">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for reply in replies %}
-                    <tr>
-                        <td><code>{{ reply.shortcut }}</code></td>
-                        <td style="max-width: 400px;" class="text-truncate">{{ reply.message }}</td>
-                        <td>
-                            <span class="badge {{ 'bg-success' if reply.line_account else 'bg-secondary' }}">
-                                {{ reply.line_account.name if reply.line_account else 'Global' }}
-                            </span>
-                        </td>
-                        <td class="text-end">
-                            <button type="button" class="btn btn-sm btn-outline-secondary edit-btn"
-                                    data-bs-toggle="modal" 
-                                    data-bs-target="#editReplyModal"
-                                    data-id="{{ reply.id }}"
-                                    data-shortcut="{{ reply.shortcut }}"
-                                    data-message="{{ reply.message }}"
-                                    data-oa-id="{{ reply.line_account_id or '' }}">
-                                <i class="bi bi-pencil-fill"></i> Edit
-                            </button>
+    <section class="card qr-table-card border-0 shadow-sm rounded-4">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table align-middle mb-0 qr-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Shortcut</th>
+                            <th scope="col">Message</th>
+                            <th scope="col">Belongs to OA</th>
+                            <th scope="col" class="text-end" style="width: 15%;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for reply in replies %}
+                        <tr>
+                            <td><code class="qr-shortcut">{{ reply.shortcut }}</code></td>
+                            <td class="text-truncate" style="max-width: 420px;">{{ reply.message }}</td>
+                            <td>
+                                <span class="badge qr-badge {{ 'qr-badge--global' if not reply.line_account else '' }}">
+                                    {{ reply.line_account.name if reply.line_account else 'Global' }}
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <div class="btn-group qr-actions">
+                                    <button type="button" class="btn btn-outline-secondary btn-sm edit-btn"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#editReplyModal"
+                                            data-id="{{ reply.id }}"
+                                            data-shortcut="{{ reply.shortcut }}"
+                                            data-message="{{ reply.message }}"
+                                            data-oa-id="{{ reply.line_account_id or '' }}">
+                                        <i class="bi bi-pencil-fill me-1"></i> แก้ไข
+                                    </button>
 
-                            <form method="post" action="{{ url_for('quick_replies.delete', id=reply.id) }}"
-                                onsubmit="return confirm('Are you sure?');" class="d-inline">
-                                <button type="submit" class="btn btn-sm btn-outline-danger">
-                                    <i class="bi bi-trash-fill"></i> Delete
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="4" class="text-center text-muted p-4">
-                            No quick replies found.
-                            {% if selected_oa_id %}
-                                <a href="{{ url_for('quick_replies.index') }}" class="d-block mt-2">Clear Filter</a>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                                    <form method="post" action="{{ url_for('quick_replies.delete', id=reply.id) }}"
+                                        onsubmit="return confirm('ต้องการลบข้อความนี้หรือไม่?');" class="d-inline">
+                                        <button type="submit" class="btn btn-outline-danger btn-sm">
+                                            <i class="bi bi-trash-fill me-1"></i> ลบ
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted py-5">
+                                ไม่พบข้อความตอบกลับ
+                                {% if selected_oa_id %}
+                                    <a href="{{ url_for('quick_replies.index') }}" class="d-block mt-2">ล้างตัวกรอง</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
-    </div>
+    </section>
 </div>
 
 {# --- MODALS (เหมือนเดิม แต่ผมเพิ่ม ID ให้ฟอร์ม Add เพื่อความชัดเจน) --- #}

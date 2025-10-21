@@ -1,53 +1,71 @@
 {% extends "base.html" %}
 {% block title %}Profile{% endblock %}
 
+{% block extra_css %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
+{% endblock %}
+
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-lg-6 col-md-8">
-
-        <div class="text-center mb-4">
-            <h2 class="mb-1">Profile</h2>
-            <p class="text-muted">จัดการข้อมูลส่วนตัวของคุณ</p>
-        </div>
-
-        <div class="card shadow-sm">
-            <div class="card-body p-4">
-
-                {# --- ส่วนแสดงข้อมูลผู้ใช้ --- #}
-                <div class="mb-4">
-                    <label class="form-label text-muted">Email</label>
-                    <p class="form-control-plaintext fs-5"><strong>{{ user.email }}</strong></p>
+<div id="profile-page" class="container py-4 py-lg-5">
+    <section class="profile-hero p-4 p-lg-5 mb-5">
+        <div class="d-flex flex-column flex-lg-row align-items-lg-center gap-4">
+            <div class="profile-avatar shadow-lg">
+                <div class="avatar-circle">
+                    <span>{{ user.email[0]|upper }}</span>
                 </div>
-                
-                <hr>
+            </div>
+            <div>
+                <span class="profile-label text-uppercase fw-semibold">Account</span>
+                <h1 class="display-6 fw-semibold mb-2">จัดการข้อมูลส่วนตัว</h1>
+                <p class="mb-0 text-muted">อัปเดตรหัสผ่านและตรวจสอบข้อมูลเข้าสู่ระบบของคุณได้จากหน้านี้</p>
+            </div>
+        </div>
+    </section>
 
-                {# --- ส่วนฟอร์มเปลี่ยนรหัสผ่าน --- #}
-                <form method="POST">
-                    <h5 class="card-title mb-3">Change Password</h5>
-
-                    <div class="mb-3">
-                        <label for="new_password" class="form-label">New Password</p>
-                        <input type="password" name="new_password" id="new_password" class="form-control" required minlength="6">
-                        <div class="form-text">
-                            รหัสผ่านควรมีความยาวอย่างน้อย 6 ตัวอักษร
+    <div class="row justify-content-center">
+        <div class="col-xl-6 col-lg-7">
+            <div class="profile-card card border-0 shadow-sm rounded-4">
+                <div class="card-body p-4 p-lg-5">
+                    <div class="mb-4">
+                        <label class="form-label text-muted">อีเมล</label>
+                        <div class="profile-email-group">
+                            <i class="bi bi-envelope-fill text-primary"></i>
+                            <span class="fw-semibold">{{ user.email }}</span>
                         </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="confirm_password" class="form-label">Confirm New Password</p>
-                        <input type="password" name="confirm_password" id="confirm_password" class="form-control" required>
-                    </div>
+                    <hr class="my-4">
 
-                    <div class="d-grid mt-4">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-key-fill"></i> Update Password
-                        </button>
-                    </div>
-                </form>
+                    <form method="POST" class="profile-form">
+                        <h2 class="h5 fw-semibold mb-3">เปลี่ยนรหัสผ่าน</h2>
+                        <p class="text-muted small mb-4">รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 6 ตัวอักษร และควรประกอบด้วยตัวอักษรและตัวเลขผสมกัน</p>
 
+                        <div class="mb-3">
+                            <label for="new_password" class="form-label">รหัสผ่านใหม่</label>
+                            <div class="input-group profile-input-group">
+                                <span class="input-group-text"><i class="bi bi-shield-lock"></i></span>
+                                <input type="password" name="new_password" id="new_password" class="form-control" required minlength="6" autocomplete="new-password">
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="confirm_password" class="form-label">ยืนยันรหัสผ่านใหม่</label>
+                            <div class="input-group profile-input-group">
+                                <span class="input-group-text"><i class="bi bi-shield-check"></i></span>
+                                <input type="password" name="confirm_password" id="confirm_password" class="form-control" required autocomplete="new-password">
+                            </div>
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary profile-submit">
+                                <i class="bi bi-key-fill me-2"></i> บันทึกการเปลี่ยนแปลง
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
-
     </div>
 </div>
 {% endblock %}

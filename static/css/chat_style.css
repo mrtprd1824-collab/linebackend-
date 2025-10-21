@@ -10,8 +10,8 @@
 body {
   margin: 0;
   padding: 0;
-  padding-top: 56px;
-  /* [เพิ่ม] เว้นที่ว่างด้านบนสำหรับ Navbar ที่สูง 56px */
+  padding-top: var(--app-navbar-offset, 72px);
+  /* เว้นพื้นที่ด้านบนให้เท่ากับความสูง navbar โดยอิงค่าจาก base.html */
   background-color: #f0f2f5;
   /* ไม่ต้องมี overflow: hidden แล้ว */
 }
@@ -19,9 +19,9 @@ body {
 /* [แก้ไข] ลบ transform และ position ออก */
 .chat-container {
   display: flex;
-  height: calc(100vh - 56px);
+  height: calc(100vh - var(--app-navbar-offset, 72px));
   /* [แก้ไข] ให้ความสูงพอดีกับพื้นที่ที่เหลือ */
-  width: 100vw;
+  width: 100%;
 }
 
 /* --- ส่วนที่เหลือปรับปรุงเล็กน้อย แต่โครงสร้างเหมือนเดิม --- */
@@ -458,7 +458,7 @@ body {
   --component-bg: white;
   --component-alt-bg: #f8f9fa;
   --chat-header-bg: #ffffff;
-  --customer-bubble-bg: #ffffff;
+  --customer-bubble-bg: #f3f5f8;
   --admin-bubble-bg: #5195f9;
   --admin-bubble-text: white;
   --event-warning-bg: #fff3cd;

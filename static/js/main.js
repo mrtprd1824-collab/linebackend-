@@ -83,6 +83,16 @@ document.addEventListener('DOMContentLoaded', function () {
     let totalMessages = 0;
     let isLoadingMore = false;
     let currentRoom = null;
+    let currentUserDisplayName = '';
+
+    const globalManageTagsBtn = document.getElementById('manage-tags-btn');
+    if (globalManageTagsBtn) {
+        globalManageTagsBtn.addEventListener('click', function (event) {
+            event.preventDefault();
+            openTagsModal();
+        });
+    }
+
     let isSearching = false;
     let currentFullNote = '';
     let currentUserTags = [];
@@ -381,12 +391,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     <button type="button" class="btn btn-outline-danger status-btn" data-status="issue">ติดปัญหา</button>
                     <button type="button" class="btn btn-outline-dark status-btn" data-status="closed">ปิดเคส</button>
                 </div>
-                <div id="tag-management-area" class="mb-2">
-                    <div id="user-tags-container"></div>
-                    <button type="button" class="btn btn-outline-primary btn-sm" id="manage-tags-btn">
-                        <i class="bi bi-tags-fill"></i> จัดการ Tag
-                    </button>
-                </div>
+                <div class="mb-2"></div>
                 <a href="/chats/download/${userId}?oa=${oaId}" target="_blank" class="btn btn-sm btn-outline-secondary w-100" title="Download Chat History">
                     <i class="bi bi-download"></i> Download History
                 </a>
@@ -397,11 +402,37 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // 3. สร้าง HTML สำหรับ Chat Header (ทำให้เรียบง่ายขึ้น)
             const chatHeader = document.getElementById('chat-header');
-            chatHeader.innerHTML = `
-                <a href="${data.account.manager_url || '#'}" target="_blank" rel="noopener noreferrer" class="text-muted d-block text-decoration-none" title="Open in LINE Official Account Manager">
-                    <i class="bi bi-line"></i> Chatting on: <strong>@${data.account.name}</strong> <i class="bi bi-box-arrow-up-right small"></i>
-                </a>
-            `;
+            if (chatHeader) {
+                const userNameEl = document.getElementById('chat-user-name');
+                const linkEl = document.getElementById('chatting-on-link');
+                const nameEl = document.getElementById('chatting-on-name');
+                const managerUrl = data.account.manager_url || '';
+
+                const headerDisplayName = data.user.nickname || data.user.display_name || 'ไม่ทราบชื่อ';
+                currentUserDisplayName = headerDisplayName;
+                if (userNameEl) {
+                    userNameEl.textContent = headerDisplayName;
+                }
+
+                if (linkEl) {
+                    if (managerUrl) {
+                        linkEl.href = managerUrl;
+                        linkEl.classList.remove('disabled');
+                        linkEl.setAttribute('target', '_blank');
+                        linkEl.setAttribute('rel', 'noopener noreferrer');
+                        linkEl.onclick = null;
+                    } else {
+                        linkEl.href = '#';
+                        linkEl.removeAttribute('target');
+                        linkEl.removeAttribute('rel');
+                        linkEl.classList.add('disabled');
+                        linkEl.onclick = (event) => event.preventDefault();
+                    }
+                }
+                if (nameEl) {
+                    nameEl.textContent = `@${data.account.name}`;
+                }
+            }
 
             currentUserTags = data.user.tags; // 1. เก็บ Tag ปัจจุบันไว้ในตัวแปร
             displayUserTags(data.user.tags);  // 2. เรียกใช้ฟังก์ชันวาด Tag

@@ -1,47 +1,250 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 
 <head>
     <meta charset="utf-8">
-    <title>Login</title>
-    <style>
-        html,
-        body {
-            height: 100%;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-        }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Linebackend Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
-<body>
-
-    {% extends "base.html" %}
-    {% block title %}Login{% endblock %}
-
-    {% block content %}
-
-    <div class="d-flex justify-content-center align-items-center vh-100" style="transform: translateY(-50px);">
-        <form method="POST" class="p-4 border rounded" style="min-width: 400px;">
-            <h2 class="text-center mb-4">Login</h2>
-
-            <div class="mb-3">
-                <label>Email</label>
-                <input type="email" name="email" class="form-control" required>
+<body class="antialiased bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+    {% set remember_value = (request.form.get('remember') if request and request.form else None) %}
+    {% set remember_is_checked = remember_value in ['on', 'true', 'True', '1'] %}
+    {% set remember_switch_classes = [
+        'relative inline-flex h-11 w-20 items-center rounded-full px-1 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900',
+        'bg-indigo-600 dark:bg-indigo-500' if remember_is_checked else 'bg-slate-300 dark:bg-slate-700'
+    ] | join(' ') %}
+    {% set remember_thumb_classes = [
+        'inline-block h-9 w-9 rounded-full bg-white dark:bg-slate-200 shadow transition-transform duration-200 ease-out',
+        'translate-x-9' if remember_is_checked else 'translate-x-0'
+    ] | join(' ') %}
+    <div class="relative min-h-screen flex flex-col lg:flex-row">
+        <button
+            id="theme-toggle"
+            type="button"
+            class="absolute right-6 top-6 inline-flex h-12 w-12 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-500 dark:hover:text-white dark:focus-visible:ring-offset-slate-900"
+            aria-pressed="false"
+        >
+            <span class="sr-only">Toggle theme</span>
+            <svg id="icon-sun" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="4" />
+                <path d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.364-6.364-1.414 1.414M7.05 16.95 5.636 18.364m12.728 0-1.414-1.414M7.05 7.05 5.636 5.636" />
+            </svg>
+            <svg id="icon-moon" class="hidden h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+            </svg>
+        </button>
+        <div class="hidden lg:flex lg:w-[42%] xl:w-5/12 relative">
+            <img
+                src="{{ hero_image_url | default(url_for('static', filename='images/my-hero.jpg')) }}"
+                alt="Team collaborating at a desk"
+                class="absolute inset-0 h-full w-full object-cover"
+            >
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/40 to-slate-900/80"></div>
+            <div class="relative flex flex-col justify-between h-full p-10 text-white">
+                <div class="text-2xl font-semibold tracking-tight">Linebackend</div>
+                <div class="space-y-3 max-w-sm">
+                    <p class="text-lg font-medium leading-relaxed">“Simply all the tools that my team and I need.”</p>
+                    <p class="text-sm text-white/80">Linebackend · Developers</p>
+                </div>
             </div>
+        </div>
 
-            <div class="mb-3">
-                <label>Password</label>
-                <input type="password" name="password" class="form-control" required>
+        <div class="flex-1 flex items-center justify-center px-4 py-12 sm:px-8 lg:px-12">
+            <div class="w-full max-w-md rounded-2xl border border-slate-100 bg-white/95 px-8 py-10 shadow-xl backdrop-blur-sm dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-slate-900/50">
+                <h1 class="text-2xl sm:text-3xl font-semibold text-slate-900 dark:text-white mb-2">Welcome back to Linebackend</h1>
+                <p class="text-sm text-slate-600 dark:text-slate-400 mb-8">Sign in with your business email to continue.</p>
+                <form id="login-form" method="POST" class="space-y-6" novalidate>
+                    <div class="space-y-2">
+                        <label for="email" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Email</label>
+                        <input
+                            id="email"
+                            name="email"
+                            type="email"
+                            autocomplete="email"
+                            required
+                            autofocus
+                            value="{{ request.form.get('email', '') }}"
+                            class="w-full h-12 px-4 rounded-lg border border-slate-200 bg-white text-slate-900 placeholder-slate-400 transition focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder-slate-400 dark:focus:border-indigo-400 dark:focus:ring-indigo-400"
+                            aria-describedby="email-error"
+                        >
+                        <p id="email-error" class="text-sm text-red-600 dark:text-red-400 hidden" aria-live="polite"></p>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label for="password" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Password</label>
+                        <div class="relative">
+                            <input
+                                id="password"
+                                name="password"
+                                type="password"
+                                autocomplete="current-password"
+                                required
+                                class="w-full h-12 pl-4 pr-12 rounded-lg border border-slate-200 bg-white text-slate-900 placeholder-slate-400 transition focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder-slate-400 dark:focus:border-indigo-400 dark:focus:ring-indigo-400"
+                                aria-describedby="password-error"
+                            >
+                            <button
+                                type="button"
+                                id="toggle-password"
+                                class="absolute inset-y-0 right-0 px-4 flex items-center text-slate-500 hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white rounded-r-lg dark:text-slate-400 dark:hover:text-slate-200 dark:focus-visible:ring-offset-slate-900"
+                                aria-label="Show password"
+                            >👁️</button>
+                        </div>
+                        <p id="password-error" class="text-sm text-red-600 dark:text-red-400 hidden" aria-live="polite"></p>
+                    </div>
+
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Remember me</span>
+                        <button
+                            type="button"
+                            id="remember-switch"
+                            role="switch"
+                            aria-checked="{{ 'true' if remember_is_checked else 'false' }}"
+                            class="{{ remember_switch_classes }}"
+                        >
+                            <span id="remember-thumb" class="{{ remember_thumb_classes }}"></span>
+                        </button>
+                        <input type="checkbox" id="remember" name="remember" class="sr-only" aria-hidden="true" {% if remember_is_checked %}checked{% endif %}>
+                    </div>
+
+                    <button
+                        type="submit"
+                        id="submit-button"
+                        class="w-full h-12 mt-2 inline-flex items-center justify-center rounded-lg bg-indigo-600 text-sm font-semibold text-white transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white hover:bg-indigo-700 active:bg-indigo-800 disabled:bg-indigo-400 disabled:cursor-not-allowed dark:bg-indigo-500 dark:hover:bg-indigo-400 dark:active:bg-indigo-500 dark:disabled:bg-indigo-600 dark:focus-visible:ring-offset-slate-900"
+                        disabled
+                    >
+                        <svg id="spinner" class="mr-2 h-4 w-4 text-white hidden" viewBox="0 0 24 24" aria-hidden="true">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                        </svg>
+                        <span id="submit-text">Log in</span>
+                    </button>
+                </form>
             </div>
-
-            <button type="submit" class="btn btn-primary w-100">Login</button>
-        </form>
+        </div>
     </div>
 
-    {% endblock %}
+    <script>
+        const htmlElement = document.documentElement;
+        const themeToggle = document.getElementById('theme-toggle');
+        const iconSun = document.getElementById('icon-sun');
+        const iconMoon = document.getElementById('icon-moon');
+        const THEME_STORAGE_KEY = 'theme';
 
+        const applyTheme = (theme) => {
+            const isDark = theme === 'dark';
+            htmlElement.classList.toggle('dark', isDark);
+            htmlElement.setAttribute('data-bs-theme', theme);
+            localStorage.setItem(THEME_STORAGE_KEY, theme);
+            if (themeToggle) {
+                themeToggle.setAttribute('aria-pressed', String(isDark));
+            }
+            if (iconSun && iconMoon) {
+                iconSun.classList.toggle('hidden', isDark);
+                iconMoon.classList.toggle('hidden', !isDark);
+            }
+        };
+
+        const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        applyTheme(savedTheme || (prefersDark ? 'dark' : 'light'));
+
+        if (themeToggle) {
+            themeToggle.addEventListener('click', () => {
+                const nextTheme = htmlElement.classList.contains('dark') ? 'light' : 'dark';
+                applyTheme(nextTheme);
+            });
+        }
+
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const togglePasswordButton = document.getElementById('toggle-password');
+        const rememberSwitch = document.getElementById('remember-switch');
+        const rememberThumb = document.getElementById('remember-thumb');
+        const rememberInput = document.getElementById('remember');
+        const submitButton = document.getElementById('submit-button');
+        const spinner = document.getElementById('spinner');
+        const submitText = document.getElementById('submit-text');
+        const emailError = document.getElementById('email-error');
+        const passwordError = document.getElementById('password-error');
+        const loginForm = document.getElementById('login-form');
+
+        const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+        function setError(element, message) {
+            const errorElement = element === emailInput ? emailError : passwordError;
+            const hasError = Boolean(message);
+
+            if (hasError) {
+                element.setAttribute('aria-invalid', 'true');
+            } else {
+                element.removeAttribute('aria-invalid');
+            }
+            errorElement.textContent = message;
+            errorElement.classList.toggle('hidden', !hasError);
+        }
+
+        function validate() {
+            let valid = true;
+
+            if (!emailInput.value.trim()) {
+                setError(emailInput, 'Email is required.');
+                valid = false;
+            } else if (!EMAIL_PATTERN.test(emailInput.value.trim())) {
+                setError(emailInput, 'Enter a valid email address.');
+                valid = false;
+            } else {
+                setError(emailInput, '');
+            }
+
+            if (!passwordInput.value.trim()) {
+                setError(passwordInput, 'Password is required.');
+                valid = false;
+            } else {
+                setError(passwordInput, '');
+            }
+
+            submitButton.disabled = !valid;
+
+            return valid;
+        }
+
+        togglePasswordButton.addEventListener('click', () => {
+            const showing = passwordInput.type === 'text';
+            passwordInput.type = showing ? 'password' : 'text';
+            togglePasswordButton.textContent = showing ? '👁️' : '🙈';
+            togglePasswordButton.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
+            passwordInput.focus();
+        });
+
+        rememberSwitch.addEventListener('click', () => {
+            const active = rememberSwitch.getAttribute('aria-checked') === 'true';
+            rememberSwitch.setAttribute('aria-checked', (!active).toString());
+            rememberSwitch.classList.toggle('bg-indigo-600', !active);
+            rememberSwitch.classList.toggle('bg-slate-300', active);
+            rememberSwitch.classList.toggle('dark:bg-indigo-500', !active);
+            rememberSwitch.classList.toggle('dark:bg-slate-700', active);
+            rememberThumb.classList.toggle('translate-x-0', active);
+            rememberThumb.classList.toggle('translate-x-9', !active);
+            rememberInput.checked = !active;
+        });
+
+        emailInput.addEventListener('input', validate);
+        passwordInput.addEventListener('input', validate);
+
+        loginForm.addEventListener('submit', (event) => {
+            if (!validate()) {
+                event.preventDefault();
+                return;
+            }
+            submitButton.disabled = true;
+            spinner.classList.remove('hidden');
+            submitText.textContent = 'Signing in…';
+        });
+
+        validate();
+    </script>
 </body>
 
 </html>

@@ -1,72 +1,81 @@
 {% extends "base.html" %}
 {% block title %}Manage Users{% endblock %}
 
+{% block extra_css %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/manage-users.css') }}">
+{% endblock %}
+
 {% block content %}
-<div class="row">
-    {# --- คอลัมน์ซ้าย: ตารางแสดงรายชื่อผู้ใช้ --- #}
-    <div class="col-lg-8">
-        <div class="card shadow-sm">
-            <div class="card-header bg-light">
-                <h4 class="mb-0">
-                    <i class="bi bi-people-fill"></i> All Users
-                </h4>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Email</th>
-                                <th>Role</th>
-                                <th>Status</th> <th class="text-end">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for u in users %}
-                            <tr id="user-row-{{ u.id }}">
-                                <td>{{ u.id }}</td>
-                                <td>{{ u.email }}</td>
-                                <td>
-                                    <span class="badge {{ 'bg-primary' if u.is_admin else 'bg-secondary' }} fw-normal">
-                                        {{ 'Admin' if u.is_admin else 'User' }}
-                                    </span>
-                                </td>
-                                <td>
-                                    {% if u.is_active %}
-                                        <span class="badge bg-success">Active</span>
-                                    {% else %}
-                                        <span class="badge bg-secondary">Inactive</span>
-                                    {% endif %}
-                                </td>
-                                <td class="text-end">
-                                    <button class="btn btn-warning btn-sm edit-btn" 
-                                            data-bs-toggle="modal" 
-                                            data-bs-target="#editUserModal"
-                                            data-user-id="{{ u.id }}"
-                                            data-user-email="{{ u.email }}"
-                                            data-user-role="{{ 'Admin' if u.is_admin else 'User' }}">
-                                        <i class="bi bi-pencil-fill"></i> Edit
-                                    </button>
-                                    
-                                    {% if u.is_active %}
-                                        <button class="btn btn-outline-secondary btn-sm toggle-active-btn" data-user-id="{{ u.id }}">
-                                            Deactivate
-                                        </button>
-                                    {% else %}
-                                        <button class="btn btn-outline-success btn-sm toggle-active-btn" data-user-id="{{ u.id }}">
-                                            Activate
-                                        </button>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+<div id="manage-users-page" class="container py-4 py-lg-5">
+    <section class="mu-hero p-4 p-lg-5 mb-5 rounded-4">
+        <span class="mu-label text-uppercase fw-semibold">Users</span>
+        <h1 class="display-6 fw-semibold mt-2"><i class="bi bi-people-fill me-2"></i>จัดการบัญชีผู้ใช้งาน</h1>
+        <p class="mb-0 text-muted">ดูรายชื่อผู้ใช้ทั้งหมด ปรับสิทธิ์บทบาท รีเซ็ต รหัสผ่าน หรือเปิด/ปิดการใช้งานได้จากที่นี่</p>
+    </section>
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card mu-list-card border-0 shadow-sm rounded-4">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0 mu-table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">ID</th>
+                                    <th scope="col">Email</th>
+                                    <th scope="col">Role</th>
+                                    <th scope="col">Status</th>
+                                    <th scope="col" class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for u in users %}
+                                <tr id="user-row-{{ u.id }}">
+                                    <td class="fw-semibold">{{ u.id }}</td>
+                                    <td>{{ u.email }}</td>
+                                    <td>
+                                        <span class="badge mu-role-badge {{ 'mu-role-badge--admin' if u.is_admin else '' }}">
+                                            {{ 'Admin' if u.is_admin else 'User' }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if u.is_active %}
+                                            <span class="badge mu-status mu-status--active">Active</span>
+                                        {% else %}
+                                            <span class="badge mu-status mu-status--inactive">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="btn-group mu-action-group">
+                                            <button class="btn btn-outline-secondary btn-sm edit-btn"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#editUserModal"
+                                                    data-user-id="{{ u.id }}"
+                                                    data-user-email="{{ u.email }}"
+                                                    data-user-role="{{ 'Admin' if u.is_admin else 'User' }}">
+                                                <i class="bi bi-pencil-fill me-1"></i> แก้ไข
+                                            </button>
+                                            
+                                            {% if u.is_active %}
+                                                <button class="btn btn-outline-secondary btn-sm toggle-active-btn" data-user-id="{{ u.id }}">
+                                                    ปิดการใช้งาน
+                                                </button>
+                                            {% else %}
+                                                <button class="btn btn-outline-success btn-sm toggle-active-btn" data-user-id="{{ u.id }}">
+                                                    เปิดการใช้งาน
+                                                </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
     <div class="modal fade" id="editUserModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
@@ -101,8 +110,8 @@
 
     {# --- คอลัมน์ขวา: ฟอร์มสำหรับเพิ่มผู้ใช้ใหม่ (ใช้โค้ดเดิมของคุณ) --- #}
     <div class="col-lg-4">
-        <div class="card shadow-sm">
-            <div class="card-header">
+        <div class="card mu-form-card border-0 shadow-sm rounded-4">
+            <div class="card-header bg-transparent border-0">
                 <h4 class="mb-0">
                     <i class="bi bi-person-plus-fill"></i> Add New User
                 </h4>

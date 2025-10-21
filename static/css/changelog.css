@@ -1,163 +1,382 @@
+/* Modern styling for changelog pages */
 
+:root {
+    --cl-hero-gradient: radial-gradient(circle at top left, #f3f5ff 0%, #f8faff 30%, #ffffff 70%);
+    --cl-surface: #ffffff;
+    --cl-muted: #6c757d;
+    --cl-border: rgba(99, 110, 139, 0.18);
+    --cl-drop: 0 18px 45px rgba(62, 84, 165, 0.18);
+    --cl-accent: #635bff;
+    --cl-accent-soft: rgba(99, 91, 255, 0.12);
+    --cl-green-soft: rgba(34, 197, 94, 0.15);
+    --cl-green: #1f9d55;
+    --cl-chip: linear-gradient(135deg, rgba(99, 91, 255, 0.15), rgba(99, 91, 255, 0.05));
+    --cl-attachment-bg: rgba(99, 91, 255, 0.08);
+}
 
-#changelog-page .datetext-changelog {
+[data-bs-theme="dark"] {
+    --cl-hero-gradient: radial-gradient(circle at top left, #1f2937 0%, #111827 45%, #0f172a 75%);
+    --cl-surface: rgba(17, 24, 39, 0.9);
+    --cl-muted: #9ba3b4;
+    --cl-border: rgba(148, 163, 184, 0.18);
+    --cl-drop: 0 18px 45px rgba(2, 6, 23, 0.6);
+    --cl-accent: #8b93ff;
+    --cl-accent-soft: rgba(99, 91, 255, 0.2);
+    --cl-green-soft: rgba(34, 197, 94, 0.25);
+    --cl-green: #4ade80;
+    --cl-chip: linear-gradient(135deg, rgba(99, 91, 255, 0.23), rgba(99, 91, 255, 0.08));
+    --cl-attachment-bg: rgba(99, 91, 255, 0.15);
+}
+
+#changelog-page {
+    max-width: 1140px;
+}
+
+.changelog-hero {
+    background: var(--cl-hero-gradient);
+    border-radius: 28px;
+    border: 1px solid rgba(99, 110, 139, 0.08);
+    box-shadow: var(--cl-drop);
+}
+
+[data-bs-theme="dark"] .changelog-hero {
+    border-color: var(--cl-border);
+}
+
+.changelog-label {
+    letter-spacing: 0.35em;
+    font-size: 0.7rem;
+    color: var(--cl-accent);
+    display: inline-block;
+    text-transform: uppercase;
+}
+
+.changelog-hero h1 {
+    color: #0f172a;
+}
+
+[data-bs-theme="dark"] .changelog-hero h1 {
+    color: #f8fafc;
+}
+
+.changelog-add-btn {
+    border-radius: 999px;
+    padding: 0.75rem 1.75rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    box-shadow: 0 12px 32px rgba(99, 91, 255, 0.28);
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.changelog-add-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 34px rgba(99, 91, 255, 0.32);
+}
+
+.changelog-row {
+    align-items: stretch;
+}
+
+.changelog-date-block {
+    background: rgba(99, 110, 139, 0.08);
+    border-radius: 18px;
+    padding: 1.1rem 1.25rem;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.4rem;
+}
+
+[data-bs-theme="dark"] .changelog-date-block {
+    background: rgba(148, 163, 184, 0.12);
+    color: #e2e8f0;
+}
+
+.changelog-date {
+    font-size: 1.1rem;
+    color: #1e293b;
+}
+
+[data-bs-theme="dark"] .changelog-date {
+    color: #f8fafc;
+}
+
+.changelog-relative {
+    color: var(--cl-muted);
+}
+
+.changelog-entry {
+    background: var(--cl-surface);
+    border-radius: 22px;
+    border: 1px solid rgba(99, 110, 139, 0.06);
+    overflow: hidden;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.changelog-entry:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 24px 40px rgba(15, 23, 42, 0.11);
+}
+
+[data-bs-theme="dark"] .changelog-entry {
+    border-color: var(--cl-border);
+    box-shadow: 0 18px 45px rgba(2, 6, 23, 0.45);
+}
+
+.changelog-entry-toggle {
+    background: transparent;
+    color: #1e293b;
+    padding: 1.2rem 1.5rem;
+    gap: 1rem;
+}
+
+.changelog-entry-toggle i {
+    transition: transform 0.18s ease;
+    font-size: 1.1rem;
+    color: rgba(15, 23, 42, 0.45);
+}
+
+.changelog-entry .accordion-button:not(.collapsed) {
+    background: rgba(99, 91, 255, 0.08);
+    color: #1e293b;
+    box-shadow: inset 0 -1px rgba(99, 110, 139, 0.12);
+}
+
+.changelog-entry .accordion-button:focus {
+    box-shadow: 0 0 0 0.25rem rgba(99, 91, 255, 0.2);
+}
+
+.changelog-entry .accordion-button::after {
+    display: none;
+}
+
+.accordion-button:not(.collapsed) .bi-chevron-down {
+    transform: rotate(-180deg);
+}
+
+[data-bs-theme="dark"] .changelog-entry-toggle {
+    color: #f1f5f9;
+}
+
+[data-bs-theme="dark"] .changelog-entry-toggle i {
+    color: rgba(248, 250, 252, 0.45);
+}
+
+[data-bs-theme="dark"] .changelog-entry .accordion-button:not(.collapsed) {
+    background: rgba(99, 91, 255, 0.18);
+    color: #f8fafc;
+}
+
+.changelog-entry-body {
+    padding: 1.75rem;
+    color: #334155;
+    font-size: 0.96rem;
+    line-height: 1.5;
+}
+
+[data-bs-theme="dark"] .changelog-entry-body {
+    color: #e2e8f0;
+}
+
+.changelog-content {
+    font-size: 1.02rem;
+}
+
+.changelog-content p:last-child {
+    margin-bottom: 0;
+}
+
+.changelog-chip {
+    background: var(--cl-chip);
+    color: var(--cl-accent);
+    border: none;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.changelog-attachments ul li {
+    margin-bottom: 0;
+}
+
+.changelog-attachment-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--cl-attachment-bg);
+    color: var(--cl-accent);
+    border-radius: 999px;
+    padding: 0.4rem 0.9rem;
+    border: 1px solid transparent;
+    font-weight: 500;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.changelog-attachment-pill:hover {
+    transform: translateY(-1px);
+    text-decoration: none;
+    box-shadow: 0 10px 18px rgba(99, 91, 255, 0.18);
+}
+
+.changelog-attachment-pill i {
+    font-size: 1rem;
+}
+
+.changelog-cover img {
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.changelog-cover img:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 22px 34px rgba(15, 23, 42, 0.18);
+}
+
+.pagination .page-link {
+    border-radius: 999px;
+    margin: 0 0.25rem;
+    padding: 0.45rem 0.9rem;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    color: #475569;
+}
+
+.pagination .page-item.active .page-link {
+    background: var(--cl-accent);
+    border-color: var(--cl-accent);
+    box-shadow: 0 12px 24px rgba(99, 91, 255, 0.25);
+}
+
+[data-bs-theme="dark"] .pagination .page-link {
+    border-color: rgba(148, 163, 184, 0.35);
+    color: #e2e8f0;
+    background: rgba(148, 163, 184, 0.08);
+}
+
+/* Detail page */
+
+#changelog-detail-page .changelog-back-link {
+    color: var(--cl-accent);
+    font-weight: 600;
+}
+
+#changelog-detail-page .changelog-back-link:hover {
+    text-decoration: none;
+}
+
+.changelog-detail-card {
+    background: var(--cl-surface);
+    box-shadow: var(--cl-drop);
+}
+
+.changelog-detail-meta {
+    color: var(--cl-muted) !important;
+}
+
+.changelog-detail-body {
+    color: #334155;
+}
+
+[data-bs-theme="dark"] .changelog-detail-body {
+    color: #e2e8f0;
+}
+
+/* Form page */
+
+#changelog-form-page .changelog-label {
+    display: inline-block;
+    margin-bottom: 0.4rem;
+}
+
+.changelog-form-card {
+    background: var(--cl-surface);
+    box-shadow: var(--cl-drop);
+}
+
+.changelog-form-card .form-label {
     font-weight: 600;
     color: #1f2937;
 }
 
-#changelog-page .accordion-item {
-    background-color: #ffffff;
-    border: 1px solid rgba(15, 23, 42, 0.08);
+[data-bs-theme="dark"] .changelog-form-card .form-label {
+    color: #e2e8f0;
 }
 
-#changelog-page .accordion-button {
-    background-color: #f8fafc;
-    color: #0f172a;
-    transition: background-color 0.2s ease;
+.changelog-input-group .form-control,
+.changelog-form-card .form-control {
+    border-radius: 16px;
+    padding: 0.75rem 1rem;
 }
 
-#changelog-page .accordion-button:not(.collapsed) {
-    background-color: #e0f2fe;
-    box-shadow: inset 0 -1px 0 rgba(15, 23, 42, 0.08);
+.changelog-input-group .btn {
+    border-radius: 16px;
 }
 
-#changelog-page .accordion-button:focus {
-    box-shadow: 0 0 0 0.2rem rgba(14, 116, 144, 0.2);
+.changelog-upload-btn {
+    font-weight: 600;
+    letter-spacing: 0.02em;
 }
 
-#changelog-page .accordion-body {
-    background-color: #ffffff;
+.changelog-image-preview {
+    border-radius: 18px;
+    background: rgba(99, 110, 139, 0.08);
+    padding: 1rem;
 }
 
-#changelog-page .badge.bg-success {
-    background-color: #ff0000 !important;
-    color: #ffffff;
+[data-bs-theme="dark"] .changelog-image-preview {
+    background: rgba(148, 163, 184, 0.12);
 }
 
-#changelog-page img.img-fluid {
-    border: 1px solid rgba(15, 23, 42, 0.08);
-    background-color: #ffffff;
+.changelog-attachment-btn {
+    border-radius: 14px;
 }
 
-#changelog-form-page .card {
-    background-color: #ffffff;
-    border: 1px solid rgba(15, 23, 42, 0.08);
-}
-
-#changelog-form-page .form-control,
-#changelog-form-page .btn {
-    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
-}
-
-/* --- Dark mode overrides --- */
-[data-bs-theme="dark"] #changelog-page .datetext-changelog {
-    color: #e5e7eb;
-}
-
-[data-bs-theme="dark"] #changelog-page .accordion-item {
-    background-color: #111827;
-    border-color: #1f2937;
-}
-
-[data-bs-theme="dark"] #changelog-page .accordion-button {
-    background-color: #1f2937;
-    color: #e5e7eb;
-}
-
-[data-bs-theme="dark"] #changelog-page .accordion-button:not(.collapsed) {
-    background-color: #1e40af;
-    color: #f9fafb;
-}
-
-[data-bs-theme="dark"] #changelog-page .accordion-button:focus {
-    box-shadow: 0 0 0 0.2rem rgba(96, 165, 250, 0.35);
-}
-
-[data-bs-theme="dark"] #changelog-page .accordion-body {
-    background-color: #0f172a;
-    color: #e5e7eb;
-}
-
-[data-bs-theme="dark"] #changelog-page .badge.bg-success {
-    background-color: #ff0000 !important;
-    color: #ffffff;
-}
-
-[data-bs-theme="dark"] #changelog-page img.img-fluid {
-    border-color: #1f2937;
-    background-color: #0f172a;
-}
-
-[data-bs-theme="dark"] #changelog-form-page .card {
-    background-color: #0f172a;
-    border-color: #1f2937;
-    color: #e5e7eb;
-}
-
-[data-bs-theme="dark"] #changelog-form-page .form-control {
-    background-color: #111827;
-    border-color: #1f2937;
-    color: #e5e7eb;
-}
-
-[data-bs-theme="dark"] #changelog-form-page .form-control:focus {
-    border-color: #60a5fa;
-    box-shadow: 0 0 0 0.2rem rgba(96, 165, 250, 0.25);
-}
-
-[data-bs-theme="dark"] #changelog-form-page .form-text {
-    color: #9ca3af;
-}
-
-[data-bs-theme="dark"] #changelog-form-page .btn-outline-primary {
-    color: #93c5fd;
-    border-color: #2563eb;
-}
-
-[data-bs-theme="dark"] #changelog-form-page .btn-outline-primary:hover {
-    background-color: #2563eb;
-    color: #f8fafc;
-}
-
-[data-bs-theme="dark"] #changelog-form-page .btn.btn-primary {
-    background-color: #2563eb;
-    border-color: #1d4ed8;
-}
-#changelog-page .attachment-preview-link {
-    color: #0f172a;
-    font-weight: 500;
-}
-
-#changelog-page .attachment-preview-link:hover {
-    color: #1d4ed8;
-    text-decoration: none;
-}
-
-#changelog-form-page #attachment-list .attachment-item {
-    gap: 0.75rem;
-}
-
-#changelog-form-page .attachment-meta a {
-    font-weight: 500;
-}
-
-#changelog-form-page .attachment-hidden-inputs {
+.attachment-hidden-inputs {
     display: none;
 }
 
-[data-bs-theme="dark"] #changelog-page .attachment-preview-link {
-    color: #bfdbfe;
+.attachment-item {
+    border-radius: 16px;
+    border: 1px solid rgba(99, 110, 139, 0.12);
+    margin-bottom: 0.75rem;
+    padding: 0.85rem 1.1rem;
+    transition: border-color 0.2s ease, transform 0.2s ease;
 }
 
-[data-bs-theme="dark"] #changelog-page .attachment-preview-link:hover {
-    color: #60a5fa;
+.attachment-item:hover {
+    border-color: rgba(99, 91, 255, 0.35);
+    transform: translateY(-2px);
 }
 
-[data-bs-theme="dark"] #changelog-form-page #attachment-list .attachment-item {
-    background-color: #111827;
-    border-color: #1f2937;
+.attachment-meta a {
+    color: var(--cl-accent);
+    font-weight: 600;
 }
 
-[data-bs-theme="dark"] #changelog-form-page .attachment-meta a {
-    color: #bfdbfe;
+.attachment-remove {
+    color: #dc3545;
+}
+
+.changelog-submit-btn {
+    border-radius: 18px;
+    padding: 0.55rem 1.5rem;
+    box-shadow: 0 12px 24px rgba(99, 91, 255, 0.22);
+}
+
+.changelog-back-outline {
+    border-radius: 18px;
+}
+
+@media (max-width: 991.98px) {
+    .changelog-date-block {
+        text-align: left;
+        padding: 1rem 1.25rem;
+    }
+
+    .changelog-entry-body {
+        padding: 1.4rem;
+    }
+
+    .changelog-entry-toggle {
+        padding: 1rem 1.2rem;
+    }
 }
