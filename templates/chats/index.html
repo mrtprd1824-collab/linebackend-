@@ -73,7 +73,7 @@
                     class="rounded-circle me-3" style="width: 50px; height: 50px;">
 
                 <div class="flex-grow-1">
-                    {% set display_name = conv.user.nickname or conv.user.display_name %}
+                    {% set display_name = conv.user.nickname or conv.user.display_name or conv.user.phone or conv.user.user_id or 'ไม่ระบุชื่อ' %}
                     <div class="d-flex w-100 justify-content-between">
                         <strong class="mb-1">{{ display_name|truncate(20, True, '...') }}</strong>
                         <div>
