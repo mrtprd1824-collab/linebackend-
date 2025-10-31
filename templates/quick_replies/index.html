@@ -7,190 +7,127 @@
 
 {% block content %}
 <div id="quick-replies-page" class="container py-4 py-lg-5">
-    <section class="qr-hero p-4 p-lg-5 mb-5 rounded-4">
+    <section class="qr-hero p-4 p-lg-5 mb-5 rounded-4 shadow-sm">
         <div class="d-flex flex-column flex-xl-row align-items-xl-center justify-content-xl-between gap-4">
             <div>
                 <span class="qr-label text-uppercase fw-semibold">Quick Replies</span>
-                <h1 class="display-6 fw-semibold mb-2"><i class="bi bi-lightning-charge-fill me-2"></i>จัดการข้อความตอบกลับเร็ว</h1>
-                <p class="mb-0 text-muted">สร้างแม่แบบข้อความเพื่อสนทนากับลูกค้าได้ทันใจ รองรับทั้ง Global และเฉพาะ OA</p>
+                <h1 class="display-6 fw-semibold mb-2">
+                    <i class="bi bi-lightning-charge-fill me-2"></i>จัดการข้อความตอบกลับเร็ว
+                </h1>
+                <p class="mb-0 text-muted">
+                    เลือก Line OA แล้วปรับข้อความ Shortcut ได้ทันทีแบบไม่ต้องโหลดหน้าใหม่
+                </p>
             </div>
-            <div class="d-flex flex-column flex-md-row align-items-md-center gap-3 w-100 w-xl-auto">
-                <form id="filter-form" method="get" action="{{ url_for('quick_replies.index') }}" class="qr-filter">
-                    <select name="oa_filter" class="form-select qr-select" onchange="document.getElementById('filter-form').submit();">
-                        <option value="">ทั้งหมด</option>
-                        {% for account in all_accounts %}
-                        <option value="{{ account.id }}" {% if account.id == selected_oa_id %}selected{% endif %}>
-                            {{ account.name }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </form>
-                <button type="button" class="btn btn-primary qr-add-btn" data-bs-toggle="modal" data-bs-target="#addReplyModal">
-                    <i class="bi bi-plus-circle-fill me-2"></i> เพิ่มข้อความใหม่
-                </button>
+            <div class="text-muted small">
+                <div><i class="bi bi-lightbulb-fill me-1"></i> เพิ่ม, แก้ไข, ลบ ได้จากช่องเดียว</div>
+                <div><i class="bi bi-link-45deg me-1"></i> Quick reply ทั่วไป (Global) จะแสดงทุก OA</div>
             </div>
         </div>
     </section>
 
-    <section class="card qr-table-card border-0 shadow-sm rounded-4">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table align-middle mb-0 qr-table">
-                    <thead>
-                        <tr>
-                            <th scope="col">Shortcut</th>
-                            <th scope="col">Message</th>
-                            <th scope="col">Belongs to OA</th>
-                            <th scope="col" class="text-end" style="width: 15%;">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for reply in replies %}
-                        <tr>
-                            <td><code class="qr-shortcut">{{ reply.shortcut }}</code></td>
-                            <td class="text-truncate" style="max-width: 420px;">{{ reply.message }}</td>
-                            <td>
-                                <span class="badge qr-badge {{ 'qr-badge--global' if not reply.line_account else '' }}">
-                                    {{ reply.line_account.name if reply.line_account else 'Global' }}
-                                </span>
-                            </td>
-                            <td class="text-end">
-                                <div class="btn-group qr-actions">
-                                    <button type="button" class="btn btn-outline-secondary btn-sm edit-btn"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#editReplyModal"
-                                            data-id="{{ reply.id }}"
-                                            data-shortcut="{{ reply.shortcut }}"
-                                            data-message="{{ reply.message }}"
-                                            data-oa-id="{{ reply.line_account_id or '' }}">
-                                        <i class="bi bi-pencil-fill me-1"></i> แก้ไข
-                                    </button>
-
-                                    <form method="post" action="{{ url_for('quick_replies.delete', id=reply.id) }}"
-                                        onsubmit="return confirm('ต้องการลบข้อความนี้หรือไม่?');" class="d-inline">
-                                        <button type="submit" class="btn btn-outline-danger btn-sm">
-                                            <i class="bi bi-trash-fill me-1"></i> ลบ
-                                        </button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="4" class="text-center text-muted py-5">
-                                ไม่พบข้อความตอบกลับ
-                                {% if selected_oa_id %}
-                                    <a href="{{ url_for('quick_replies.index') }}" class="d-block mt-2">ล้างตัวกรอง</a>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+    <div class="row g-4 qr-layout">
+        <div class="col-12 col-lg-4">
+            <aside class="qr-oa-panel p-4 rounded-4 shadow-sm h-100">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <h2 class="h5 fw-semibold mb-0">Line OA ทั้งหมด</h2>
+                    <span class="badge bg-primary-subtle text-primary-emphasis">
+                        {{ account_options|length }}
+                    </span>
+                </div>
+                <div class="qr-oa-list" id="qr-oa-list">
+                    <button type="button"
+                            class="qr-oa-item btn w-100 text-start {% if selected_oa_id is none %}active{% endif %}"
+                            data-oa-key="global">
+                        <span class="qr-oa-name">Global (ทุก OA)</span>
+                        <small class="text-muted d-block">Shortcut ที่ใช้ร่วมกันทุกบัญชี</small>
+                    </button>
+                    {% for account in account_options %}
+                    <button type="button"
+                            class="qr-oa-item btn w-100 text-start {% if selected_oa_id is not none and account.id == selected_oa_id %}active{% endif %}"
+                            data-oa-key="{{ account.id }}">
+                        <span class="qr-oa-name">{{ account.name }}</span>
+                        <small class="text-muted d-block">ดูและแก้ไขของ OA นี้</small>
+                    </button>
+                    {% endfor %}
+                </div>
+            </aside>
         </div>
-    </section>
-</div>
 
-{# --- MODALS (เหมือนเดิม แต่ผมเพิ่ม ID ให้ฟอร์ม Add เพื่อความชัดเจน) --- #}
+        <div class="col-12 col-lg-8">
+            <section class="qr-workspace d-flex flex-column gap-4 h-100">
+                <div id="qr-feedback" class="alert d-none" role="alert"></div>
 
-<!-- Add Modal -->
-<div class="modal fade" id="addReplyModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Add New Reply</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <form id="add-form" method="POST" action="{{ url_for('quick_replies.add') }}">
-        {{ add_form.hidden_tag() }}
-        <div class="modal-body">
-          <div class="mb-3">
-            {{ add_form.shortcut.label(class="form-label") }}
-            {{ add_form.shortcut(class="form-control", required=True) }}
-          </div>
-          <div class="mb-3">
-            {{ add_form.message.label(class="form-label") }}
-            {{ add_form.message(class="form-control", rows=4, required=True) }}
-          </div>
-          <div class="mb-3">
-            {{ add_form.line_account.label(class="form-label") }}
-            {{ add_form.line_account(class="form-select") }}
-            <div class="form-text">เลือก -- Global -- หากต้องการให้ใช้ได้กับทุก OA</div>
-          </div>
+                <div class="qr-card p-4 rounded-4 shadow-sm">
+                    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-3">
+                        <div>
+                            <h2 class="h5 fw-semibold mb-1">เพิ่ม Quick Reply ใหม่</h2>
+                            <p class="text-muted small mb-0">กรอก Shortcut และข้อความ แล้วเลือกว่าจะใช้กับ OA ไหน</p>
+                        </div>
+                    </div>
+                    <form id="new-reply-form" class="row g-3">
+                        <input type="hidden" name="csrf_token" value="{{ add_form.csrf_token._value() }}">
+                        <div class="col-md-4">
+                            <label for="new-shortcut" class="form-label">Shortcut</label>
+                            <input type="text" class="form-control" id="new-shortcut" name="shortcut" maxlength="50" required>
+                        </div>
+                        <div class="col-md-8">
+                            <label for="new-message" class="form-label">Message</label>
+                            <textarea class="form-control" id="new-message" name="message" rows="2" required></textarea>
+                        </div>
+                        <div class="col-md-6 col-lg-4">
+                            <label for="new-line-account" class="form-label">ใช้งานกับ</label>
+                            <select class="form-select" id="new-line-account" name="line_account">
+                                <option value="__None">Global (ทุก OA)</option>
+                                {% for account in account_options %}
+                                <option value="{{ account.id }}">{{ account.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-6 col-lg-4 ms-md-auto d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-plus-circle me-2"></i>บันทึก Quick Reply
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="qr-card p-4 rounded-4 shadow-sm flex-grow-1">
+                    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-3">
+                        <div>
+                            <h2 class="h5 fw-semibold mb-1" id="qr-list-title">รายการ Quick Replies</h2>
+                            <p class="text-muted small mb-0" id="qr-list-subtitle">
+                                เลือก OA ที่ต้องการจากคอลัมน์ซ้ายเพื่อดูรายการ
+                            </p>
+                        </div>
+                        <span class="badge bg-secondary-subtle text-secondary-emphasis" id="qr-count-badge">0 รายการ</span>
+                    </div>
+                    <div id="qr-empty-state" class="qr-empty-state text-center text-muted py-5 d-none">
+                        <i class="bi bi-inboxes display-5 d-block mb-3"></i>
+                        <p class="mb-0">ยังไม่มี Quick Reply ใน OA นี้</p>
+                    </div>
+                    <div id="qr-replies-container" class="qr-reply-list d-flex flex-column gap-3"></div>
+                </div>
+            </section>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          {{ add_form.submit(class="btn btn-primary") }}
-        </div>
-      </form>
     </div>
-  </div>
 </div>
-
-<!-- Edit -->
-
-<div class="modal fade" id="editReplyModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Edit Reply</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <form id="edit-form" method="POST" action="">
-          {{ edit_form.hidden_tag() }}
-          <div class="modal-body">
-            <div class="mb-3">
-              {{ edit_form.shortcut.label(class="form-label") }}
-              {{ edit_form.shortcut(class="form-control", id="edit_shortcut", required=True) }}
-            </div>
-            <div class="mb-3">
-              {{ edit_form.message.label(class="form-label") }}
-              {{ edit_form.message(class="form-control", rows=4, id="edit_message", required=True) }}
-            </div>
-            <div class="mb-3">
-              {{ edit_form.line_account.label(class="form-label") }}
-              {{ edit_form.line_account(class="form-select", id="edit_line_account") }}
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            {{ edit_form.submit(class="btn btn-primary", value="Update") }}
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const editReplyModal = document.getElementById('editReplyModal');
-        const editForm = document.getElementById('edit-form');
-        const editShortcut = document.getElementById('edit_shortcut');
-        const editMessage = document.getElementById('edit_message');
-        const editLineAccount = document.getElementById('edit_line_account');
-
-        // เมื่อ Modal กำลังจะแสดง
-        editReplyModal.addEventListener('show.bs.modal', function (event) {
-            // ปุ่มที่ถูกคลิก
-            const button = event.relatedTarget;
-
-            // ดึงข้อมูลจาก data-* attributes ของปุ่ม
-            const id = button.dataset.id;
-            const shortcut = button.dataset.shortcut;
-            const message = button.dataset.message;
-            const oaId = button.dataset.oaId;
-
-            // สร้าง URL ที่ถูกต้องสำหรับ action ของฟอร์ม
-            const actionUrl = `/quick-replies/edit/${id}`;
-            
-            // อัปเดตค่าในฟอร์มของ Modal
-            editForm.action = actionUrl;
-            editShortcut.value = shortcut;
-            editMessage.value = message;
-            editLineAccount.value = oaId;
-        });
-    });
+    window.quickRepliesConfig = {
+        csrfToken: {{ add_form.csrf_token._value()|tojson }},
+        selectedAccountId: {{ (selected_oa_id if selected_oa_id is not none else None)|tojson }},
+        accounts: {{ account_options|tojson }},
+        routes: {
+            data: {{ url_for('quick_replies.data')|tojson }},
+            add: {{ url_for('quick_replies.add')|tojson }},
+            edit: {{ (url_for('quick_replies.edit', id=0)[:-1])|tojson }},
+            delete: {{ (url_for('quick_replies.delete', id=0)[:-1])|tojson }}
+        }
+    };
 </script>
+{% endblock %}
 
+{% block scripts %}
+    {{ super() }}
+    <script src="{{ url_for('static', filename='js/quick-replies.js') }}"></script>
 {% endblock %}
